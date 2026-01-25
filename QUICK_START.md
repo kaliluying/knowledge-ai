@@ -4,7 +4,35 @@
 
 - Python 3.12+
 - Node.js 20+
-- PostgreSQL 17 (可选，开发环境使用 SQLite)
+- **PostgreSQL 17** (必须安装)
+
+## 安装 PostgreSQL
+
+### Windows
+1. 下载 PostgreSQL 17: https://www.postgresql.org/download/windows/
+2. 安装时设置:
+   - 用户名: postgres
+   - 密码: postgres
+   - 端口: 5432
+3. 创建数据库: knowledge_db
+
+```bash
+# 创建数据库 (在 psql 或 pgAdmin 中执行)
+CREATE DATABASE knowledge_db;
+```
+
+### macOS
+```bash
+brew install postgresql@17
+brew services start postgresql@17
+createdb knowledge_db
+```
+
+### Linux (Ubuntu/Debian)
+```bash
+sudo apt install postgresql-17
+sudo -u postgres createdb knowledge_db
+```
 
 ## 快速启动
 
@@ -17,12 +45,18 @@ start.bat
 
 ### 方式二：手动启动
 
-#### 1. 启动后端
+#### 1. 配置数据库
+
+```bash
+# 编辑 backend/.env，设置正确的数据库密码
+```
+
+#### 2. 启动后端
 
 ```bash
 cd backend
 
-# 创建虚拟环境 (可选)
+# 创建虚拟环境
 python -m venv venv
 .\venv\Scripts\activate
 
@@ -36,7 +70,7 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-#### 2. 启动前端
+#### 3. 启动前端
 
 ```bash
 cd frontend
@@ -54,7 +88,6 @@ npm run dev
 |------|------|
 | 前端页面 | http://localhost:5173 |
 | 后端 API | http://localhost:8000 |
-| API 健康检查 | http://localhost:8000/api/health/ |
 
 ## API 端点
 
@@ -90,10 +123,18 @@ POST /api/auth/logout/
 Body: { "refresh": <refresh_token> }
 ```
 
-## 开发说明
+## 数据库配置
 
-- **开发环境**: 使用 SQLite 数据库，无需安装 PostgreSQL
-- **生产环境**: 修改 `backend/.env` 中 `DEBUG=False`，使用 PostgreSQL
+项目使用 PostgreSQL 17，配置在 `backend/.env` 中:
+
+```env
+DATABASE_ENGINE=django.db.backends.postgresql
+DATABASE_NAME=knowledge_db
+DATABASE_USER=postgres
+DATABASE_PASSWORD=postgres
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+```
 
 ## 项目结构
 
@@ -110,8 +151,28 @@ knowledge/
 └── README.md         # 项目说明
 ```
 
+## 故障排除
+
+### 连接数据库失败
+
+1. 检查 PostgreSQL 服务是否运行
+2. 检查用户名和密码是否正确
+3. 检查数据库 knowledge_db 是否存在
+
+### 端口被占用
+
+```bash
+# Windows
+netstat -ano | findstr :8000
+netstat -ano | findstr :5173
+
+# 停止占用端口的进程
+taskkill /PID <PID> /F
+```
+
 ## 下一步
 
-1. 访问 http://localhost:5173
-2. 注册新用户
-3. 开始使用笔记管理功能
+1. 安装并启动 PostgreSQL 17
+2. 创建 knowledge_db 数据库
+3. 启动后端和前端服务
+4. 访问 http://localhost:5173 注册用户
