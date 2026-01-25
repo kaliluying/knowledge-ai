@@ -1,22 +1,42 @@
 """
 URL configuration for config project.
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+API Structure:
+- /api/auth/ - Authentication endpoints
+- /api/notes/ - Notes management
+- /api/categories/ - Categories management
+- /api/tags/ - Tags management
+- /api/graph/ - Knowledge graph
+- /api/collections/ - Content collections
+- /api/attachments/ - File attachments
 """
+
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # Admin
+    path("admin/", admin.site.urls),
+    # API Authentication
+    path("api/auth/", include("apps.users.urls")),
+    # API Notes
+    path("api/notes/", include("apps.notes.urls")),
+    # API Categories
+    path("api/categories/", include("apps.categories.urls")),
+    # API Tags
+    path("api/tags/", include("apps.tags.urls")),
+    # API Knowledge Graph
+    path("api/graph/", include("apps.graph.urls")),
+    # API Collections
+    path("api/collections/", include("apps.collections.urls")),
+    # API Attachments
+    path("api/attachments/", include("apps.attachments.urls")),
+    # Health check
+    path("api/health/", lambda request: {"status": "ok"}, name="health"),
 ]
+
+# Media files
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
