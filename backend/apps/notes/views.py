@@ -1,9 +1,10 @@
 """
 笔记视图模块
 
-TipTap 编辑器内容管理
+Markdown 编辑器内容管理
 """
 
+import re
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -20,6 +21,29 @@ from .serializers import (
 )
 from utils.permissions import IsOwnerOrReadOnly
 from utils.pagination import NotePagination
+from apps.graph.models import GraphNode, GraphLink
+
+
+def extract_note_links(content):
+    """
+    从 Markdown 内容中提取笔记链接
+    返回链接到的笔记 ID 列表
+    """
+    if not content:
+        return []
+
+    # 匹配 [Note Title](/notes/{id}) 格式
+    pattern = r'\[([^\]]+)\]\(/notes/(\d+)\)'
+    matches = re.findall(pattern, content)
+
+    note_ids = []
+    for title, note_id in matches:
+        try:
+            note_ids.append(int(note_id))
+        except ValueError:
+            continue
+
+    return note_ids
 
 
 class NoteViewSet(viewsets.ModelViewSet):
@@ -96,8 +120,176 @@ class NoteViewSet(viewsets.ModelViewSet):
         return NoteSerializer
 
     def perform_create(self, serializer):
-        """创建时设置所有者"""
-        serializer.save(owner=self.request.user)
+        """创建时设置所有者并建立笔记关联"""
+        note = serializer.save(owner=self.request.user)
+        # 提取内容中的笔记链接并建立关联
+        self._update_related_notes(note)
+
+    def _update_related_notes(self, note):
+        """从笔记内容中提取链接并更新关联关系"""
+        content = note.content
+        if not content:
+            # 清空关联时也需要清理图谱数据
+            self._sync_graph_data(note, [])
+            return
+
+        # 提取内容中的笔记链接
+        linked_note_ids = extract_note_links(content)
+
+        # 获取用户的所有笔记
+        user_notes = Note.objects.filter(owner=note.owner)
+
+        # 过滤出有效的笔记 ID
+        valid_note_ids = list(
+            user_notes.filter(id__in=linked_note_ids).values_list("id", flat=True)
+        )
+
+        # 移除指向自己的链接
+        valid_note_ids = [id for id in valid_note_ids if id != note.id]
+
+        # 更新关联关系
+        note.related_notes.set(valid_note_ids)
+
+        # 双向关联：更新被关联的笔记
+        for related_id in valid_note_ids:
+            related_note = user_notes.filter(id=related_id).first()
+            if related_note:
+                related_note.related_notes.add(note)
+                related_note.save(update_fields=[])
+
+        # 清理不再关联的笔记的双向关系
+        current_related = set(note.related_notes.values_list("id", flat=True))
+        target_related = set(valid_note_ids)
+        to_remove = current_related - target_related
+        for removed_id in to_remove:
+            removed_note = user_notes.filter(id=removed_id).first()
+            if removed_note:
+                removed_note.related_notes.remove(note)
+                removed_note.save(update_fields=[])
+
+        # 同步创建 GraphNode 和 GraphLink
+        self._sync_graph_data(note, valid_note_ids)
+
+    def _sync_graph_data(self, note, related_note_ids):
+        """同步图谱数据：确保笔记节点存在并创建/删除链接"""
+        user = note.owner
+
+        # 确保当前笔记有 GraphNode
+        note_node, _ = GraphNode.objects.get_or_create(
+            owner=user,
+            node_type="note",
+            title=note.title,
+            defaults={"label": note.title[:50]},
+        )
+
+        # 收集需要创建的链接目标节点
+        target_nodes = {}
+
+        for related_id in related_note_ids:
+            related_note = Note.objects.filter(id=related_id, owner=user).first()
+            if not related_note:
+                continue
+
+            # 确保关联笔记有 GraphNode
+            related_node, _ = GraphNode.objects.get_or_create(
+                owner=user,
+                node_type="note",
+                title=related_note.title,
+                defaults={"label": related_note.title[:50]},
+            )
+            target_nodes[related_id] = related_node
+
+        # 清理不再相关的 GraphLink
+        GraphLink.objects.filter(
+            owner=user,
+            source=note_node,
+            link_type="reference",
+        ).exclude(
+            target_id__in=list(target_nodes.keys())
+        ).delete()
+
+        # 创建新的 GraphLink
+        for related_id, related_node in target_nodes.items():
+            self._create_graph_link(user, note_node, related_node, "reference")
+
+    def _create_graph_link(self, user, source_node, target_node, link_type):
+        """创建图谱链接（如果不存在）"""
+        if source_node.id == target_node.id:
+            return
+
+        GraphLink.objects.get_or_create(
+            owner=user,
+            source=source_node,
+            target=target_node,
+            defaults={"link_type": link_type},
+        )
+
+    def create(self, request, *args, **kwargs):
+        """创建笔记并返回包装的响应"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        # 获取完整的笔记数据
+        note = Note.objects.get(id=serializer.instance.id)
+        response_serializer = NoteSerializer(note)
+
+        return Response(
+            {
+                "code": 201,
+                "message": "创建成功",
+                "data": response_serializer.data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    def retrieve(self, request, *args, **kwargs):
+        """获取笔记详情并返回包装的响应"""
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(
+            {
+                "code": 200,
+                "message": "获取成功",
+                "data": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def update(self, request, *args, **kwargs):
+        """更新笔记并返回包装的响应"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        # 更新关联关系
+        note = Note.objects.get(id=instance.id)
+        self._update_related_notes(note)
+
+        response_serializer = NoteSerializer(note)
+
+        return Response(
+            {
+                "code": 200,
+                "message": "更新成功",
+                "data": response_serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        """删除笔记"""
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(
+            {
+                "code": 200,
+                "message": "删除成功",
+            },
+            status=status.HTTP_200_OK,
+        )
 
     @action(detail=True, methods=["post"])
     def archive(self, request, id=None):
@@ -197,6 +389,35 @@ class NoteViewSet(viewsets.ModelViewSet):
                 "code": 200,
                 "message": "搜索成功",
                 "data": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=False, methods=["get"])
+    def suggestions(self, request):
+        """
+        获取笔记建议列表（用于内部链接选择）
+
+        GET /api/notes/suggestions/?q=关键词
+        返回 {id, title} 格式的简洁列表
+        """
+        query = request.query_params.get("q", "")
+        limit = int(request.query_params.get("limit", 20))
+
+        notes = self.get_queryset().filter(is_archived=False)
+
+        if query:
+            notes = notes.filter(title__icontains=query)
+
+        notes = notes.order_by("-created_at")[:limit]
+
+        # 返回简洁格式
+        data = [{"id": note.id, "title": note.title} for note in notes]
+        return Response(
+            {
+                "code": 200,
+                "message": "获取成功",
+                "data": data,
             },
             status=status.HTTP_200_OK,
         )

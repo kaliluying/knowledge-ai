@@ -4,6 +4,7 @@
 使用 django-mptt 实现树形结构
 """
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.text import slugify
 from mptt.models import MPTTModel, TreeForeignKey
@@ -101,9 +102,15 @@ class Category(MPTTModel):
         return self.name
 
     def save(self, *args, **kwargs):
-        """保存时自动生成 slug"""
+        """保存时自动生成 slug 并验证层级深度"""
         if not self.slug:
             self.slug = slugify(self.name)
+
+        # 验证层级深度
+        if self.parent:
+            if self.parent.level >= 2:
+                raise ValidationError("分类层级不能超过 3 级")
+
         super().save(*args, **kwargs)
 
     @property

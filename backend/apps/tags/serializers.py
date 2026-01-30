@@ -11,6 +11,8 @@ class TagSerializer(serializers.ModelSerializer):
     标签序列化器（完整版）
     """
 
+    usage_count = serializers.SerializerMethodField()
+
     class Meta:
         model = Tag
         fields = [
@@ -28,16 +30,21 @@ class TagSerializer(serializers.ModelSerializer):
             "id",
             "slug",
             "owner",
-            "usage_count",
             "created_at",
             "updated_at",
         ]
+
+    def get_usage_count(self, obj):
+        """获取使用次数"""
+        return getattr(obj, "notes_count", obj.usage_count)
 
 
 class TagListSerializer(serializers.ModelSerializer):
     """
     标签序列化器（精简版）
     """
+
+    usage_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Tag
@@ -48,6 +55,10 @@ class TagListSerializer(serializers.ModelSerializer):
             "color",
             "usage_count",
         ]
+
+    def get_usage_count(self, obj):
+        """获取使用次数"""
+        return getattr(obj, "notes_count", obj.usage_count)
 
 
 class TagCreateSerializer(serializers.ModelSerializer):

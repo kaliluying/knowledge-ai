@@ -93,6 +93,8 @@ class CategoryTreeSerializer(serializers.ModelSerializer):
     level = serializers.SerializerMethodField()
     value = serializers.SerializerMethodField()
     label = serializers.SerializerMethodField()
+    children_count = serializers.SerializerMethodField()
+    notes_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Category
@@ -109,6 +111,8 @@ class CategoryTreeSerializer(serializers.ModelSerializer):
             "value",
             "label",
             "children",
+            "children_count",
+            "notes_count",
         ]
 
     def get_children(self, obj):
@@ -130,6 +134,16 @@ class CategoryTreeSerializer(serializers.ModelSerializer):
         """获取标签（用于显示）"""
         prefix = "　" * obj.level
         return f"{prefix}{obj.name}"
+
+    def get_children_count(self, obj):
+        """获取子分类数量"""
+        return obj.get_children().count()
+
+    def get_notes_count(self, obj):
+        """获取该分类下的笔记数量"""
+        from apps.notes.models import Note
+        # 直接使用 category_id 过滤，避免 MPTT 对象比较问题
+        return Note.objects.filter(category_id=obj.id, is_archived=False).count()
 
 
 class CategoryCreateSerializer(serializers.ModelSerializer):

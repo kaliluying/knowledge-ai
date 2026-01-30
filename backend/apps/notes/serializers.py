@@ -86,6 +86,7 @@ class NoteListSerializer(serializers.ModelSerializer):
         source="category.name", allow_null=True, read_only=True
     )
     tag_names = serializers.SerializerMethodField()
+    plain_text = serializers.CharField(read_only=True)
 
     class Meta:
         model = Note
@@ -94,6 +95,7 @@ class NoteListSerializer(serializers.ModelSerializer):
             "title",
             "slug",
             "cover_image",
+            "plain_text",
             "category_name",
             "tag_names",
             "is_pinned",

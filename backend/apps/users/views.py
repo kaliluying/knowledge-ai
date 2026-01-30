@@ -34,7 +34,37 @@ class RegisterView(APIView):
         处理用户注册
         """
         serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
+
+        if not serializer.is_valid():
+            # 收集所有错误信息
+            error_messages = []
+            errors_dict = dict(serializer.errors)
+            for field, errors in errors_dict.items():
+                for error in errors:
+                    if field == "email":
+                        error_messages.append("邮箱已被注册")
+                    elif field == "username":
+                        error_messages.append("用户名已被使用")
+                    elif field == "password":
+                        error_messages.append("密码格式不正确")
+                    else:
+                        error_messages.append(str(error))
+
+            # 如果有密码不一致的错误，优先显示
+            if "password_confirm" in errors_dict:
+                error_messages.insert(0, "两次输入的密码不一致")
+
+            error_msg = (
+                " ".join(error_messages)
+                if error_messages
+                else "注册信息有误，请检查后重试"
+            )
+
+            return Response(
+                {"code": 400, "message": error_msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         user = serializer.save()
 
         # 生成 Token
@@ -165,7 +195,7 @@ class RefreshTokenView(APIView):
                 },
                 status=status.HTTP_200_OK,
             )
-        except Exception as e:
+        except Exception:
             return Response(
                 {"code": 401, "message": "无效的 refresh token"},
                 status=status.HTTP_401_UNAUTHORIZED,

@@ -36,6 +36,22 @@ class UserCreateSerializer(serializers.ModelSerializer):
             "password_confirm",
         ]
 
+    def validate_email(self, value):
+        """
+        验证邮箱是否已被注册
+        """
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("该邮箱已被注册")
+        return value
+
+    def validate_username(self, value):
+        """
+        验证用户名是否已被使用
+        """
+        if User.objects.filter(username__iexact=value).exists():
+            raise serializers.ValidationError("该用户名已被使用")
+        return value
+
     def validate(self, attrs):
         """
         验证两次密码是否一致
@@ -131,3 +147,53 @@ class PasswordChangeSerializer(serializers.Serializer):
         if not user.check_password(value):
             raise serializers.ValidationError("旧密码不正确")
         return value
+
+
+class PasswordResetSerializer(serializers.Serializer):
+    """
+    密码重置请求序列化器
+
+    用于发送密码重置邮件
+    """
+
+    email = serializers.EmailField(required=True)
+
+    def validate_email(self, value):
+        """
+        验证邮箱是否已注册
+        """
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        if not User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("该邮箱未注册")
+        return value
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """
+    密码重置确认序列化器
+
+    用于设置新密码
+    """
+
+    token = serializers.CharField(required=True)
+    new_password = serializers.CharField(
+        required=True,
+        validators=[validate_password],
+        style={"input_type": "password"},
+    )
+    new_password_confirm = serializers.CharField(
+        required=True,
+        style={"input_type": "password"},
+    )
+
+    def validate(self, attrs):
+        """
+        验证两次密码是否一致
+        """
+        if attrs["new_password"] != attrs["new_password_confirm"]:
+            raise serializers.ValidationError(
+                {"new_password_confirm": "两次输入的密码不一致"}
+            )
+        return attrs

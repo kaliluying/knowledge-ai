@@ -1,0 +1,378 @@
+/* ==========================================================================
+   Animations - 动画效果
+   ========================================================================== */
+
+/* Keyframes */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleOut {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(-25%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.6);
+  }
+}
+
+/* Fade Animations */
+.animate-fade-in { animation: fadeIn 0.3s ease forwards; }
+.animate-fade-out { animation: fadeOut 0.3s ease forwards; }
+.animate-fade-in-up { animation: fadeInUp 0.4s ease forwards; }
+.animate-fade-in-down { animation: fadeInDown 0.4s ease forwards; }
+.animate-fade-in-left { animation: fadeInLeft 0.4s ease forwards; }
+.animate-fade-in-right { animation: fadeInRight 0.4s ease forwards; }
+
+/* Slide Animations */
+.animate-slide-in-up { animation: slideInUp 0.3s ease forwards; }
+.animate-slide-in-down { animation: slideInDown 0.3s ease forwards; }
+.animate-slide-in-left { animation: slideInLeft 0.3s ease forwards; }
+.animate-slide-in-right { animation: slideInRight 0.3s ease forwards; }
+
+/* Scale Animations */
+.animate-scale-in { animation: scaleIn 0.2s ease forwards; }
+.animate-scale-out { animation: scaleOut 0.2s ease forwards; }
+
+/* Loop Animations */
+.animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+.animate-ping { animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite; }
+.animate-spin { animation: spin 1s linear infinite; }
+.animate-bounce { animation: bounce 1s infinite; }
+
+/* Interaction Animations */
+.animate-shake { animation: shake 0.5s ease-in-out; }
+.animate-glow { animation: glow 2s ease-in-out infinite; }
+
+/* Loading Animations */
+.animate-ripple {
+  position: relative;
+  overflow: hidden;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+    animation: ripple 1.5s ease-out infinite;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-muted) 25%,
+    var(--color-surface) 50%,
+    var(--color-bg-muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Transition utilities */
+.transition-all { transition: all 0.3s ease; }
+.transition-colors { transition: background-color, border-color, color, fill, stroke 0.3s ease; }
+.transition-opacity { transition: opacity 0.3s ease; }
+.transition-transform { transition: transform 0.3s ease; }
+.transition-shadow { transition: box-shadow 0.3s ease; }
+
+/* Hover effects */
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+.hover-glow:hover {
+  animation: glow 1s ease-in-out;
+}
+
+/* Focus states */
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+/* Active states */
+.active-scale:active {
+  transform: scale(0.98);
+}
+
+/* Page transitions */
+.page-enter-active,
+.page-leave-active {
+  transition: all 0.3s ease;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* List transitions */
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.4s ease;
+}
+
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.list-move {
+  transition: transform 0.4s ease;
+}
+
+/* Modal transitions */
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+  
+  .modal-content {
+    transform: scale(0.9) translateY(20px);
+  }
+}
+
+.modal-enter-active .modal-content,
+.modal-leave-active .modal-content {
+  transition: transform 0.3s ease;
+}
+
+/* Drawer transitions */
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: all 0.3s ease;
+}
+
+.drawer-enter-from,
+.drawer-leave-to {
+  opacity: 0;
+  
+  &.drawer-right .drawer-content {
+    transform: translateX(100%);
+  }
+  
+  &.drawer-left .drawer-content {
+    transform: translateX(-100%);
+  }
+  
+  &.drawer-top .drawer-content {
+    transform: translateY(-100%);
+  }
+  
+  &.drawer-bottom .drawer-content {
+    transform: translateY(100%);
+  }
+}
+
+.drawer-right .drawer-content,
+.drawer-left .drawer-content,
+.drawer-top .drawer-content,
+.drawer-bottom .drawer-content {
+  transition: transform 0.3s ease;
+}
+
+/* Notification transitions */
+.notification-enter-active,
+.notification-leave-active {
+  transition: all 0.4s ease;
+}
+
+.notification-enter-from {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.notification-leave-to {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.notification-move {
+  transition: transform 0.4s ease;
+}

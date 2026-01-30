@@ -1,20 +1,18 @@
 """
 笔记模型模块
 
-TipTap 编辑器内容存储
+Markdown 编辑器内容存储
 """
 
 from django.db import models
 from django.utils.text import slugify
-from django.utils.html import strip_tags
-from html import unescape
 
 
 class Note(models.Model):
     """
     笔记模型
 
-    使用 TipTap 编辑器存储 JSON 格式的内容
+    使用 Markdown 编辑器存储文本内容
     """
 
     title = models.CharField(
@@ -26,16 +24,22 @@ class Note(models.Model):
         unique=True,
         verbose_name="URL别名",
     )
-    content = models.JSONField(
-        default=list,
-        verbose_name="内容",
-        help_text="TipTap JSON 内容",
+    content = models.TextField(
+        blank=True,
+        default="",
+        verbose_name="Markdown 内容",
     )
     plain_text = models.TextField(
         blank=True,
         default="",
         verbose_name="纯文本内容",
         help_text="用于全文搜索",
+    )
+    related_notes = models.ManyToManyField(
+        "self",
+        symmetrical=True,
+        blank=True,
+        verbose_name="相关笔记",
     )
     cover_image = models.URLField(
         max_length=500,
@@ -108,30 +112,48 @@ class Note(models.Model):
         if not self.slug:
             self.slug = slugify(self.title)
 
-        # 从 JSON 内容生成纯文本
-        if self.content and isinstance(self.content, list):
-            self.plain_text = self._extract_text_from_content(self.content)
+        # 从 Markdown 内容生成纯文本
+        if self.content:
+            self.plain_text = self._extract_text_from_markdown(self.content)
 
         super().save(*args, **kwargs)
 
-    def _extract_text_from_content(self, content):
-        """从 TipTap JSON 内容提取纯文本"""
-        text_parts = []
+    def _extract_text_from_markdown(self, content):
+        """从 Markdown 内容提取纯文本"""
+        import re
+        # 移除 Markdown 语法标记，保留纯文本
+        text = content
+        # 移除标题标记 (#)
+        text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
+        # 移除粗体标记
+        text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+        text = re.sub(r'__(.+?)__', r'\1', text)
+        # 移除斜体标记
+        text = re.sub(r'\*(.+?)\*', r'\1', text)
+        text = re.sub(r'_(.+?)_', r'\1', text)
+        # 移除删除线
+        text = re.sub(r'~~(.+?)~~', r'\1', text)
+        # 移除行内代码标记
+        text = re.sub(r'`(.+?)`', r'\1', text)
+        # 移除代码块
+        text = re.sub(r'```[\s\S]*?```', '', text)
+        # 移除链接 [text](url)
+        text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+        # 移除图片
+        text = re.sub(r'!\[([^\]]*)\]\([^\)]+\)', r'\1', text)
+        # 移除引用标记
+        text = re.sub(r'^>\s+', '', text, flags=re.MULTILINE)
+        # 移除列表标记
+        text = re.sub(r'^[\s]*[-*+]\s+', '', text, flags=re.MULTILINE)
+        text = re.sub(r'^[\s]*\d+\.\s+', '', text, flags=re.MULTILINE)
+        # 移除水平线
+        text = re.sub(r'^[-*_]{3,}$', '', text, flags=re.MULTILINE)
+        # 移除 HTML 标签
+        text = re.sub(r'<[^>]+>', '', text)
+        # 合并空白字符
+        text = re.sub(r'\s+', ' ', text).strip()
 
-        def extract_text_from_node(node):
-            if isinstance(node, dict):
-                # 获取文本内容
-                if "text" in node:
-                    text_parts.append(node["text"])
-                # 递归处理子节点
-                if "content" in node and isinstance(node["content"], list):
-                    for child in node["content"]:
-                        extract_text_from_node(child)
-
-        for node in content:
-            extract_text_from_node(node)
-
-        return " ".join(text_parts)
+        return text
 
     @property
     def word_count(self):

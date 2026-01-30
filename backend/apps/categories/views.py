@@ -66,6 +66,57 @@ class CategoryViewSet(viewsets.ModelViewSet):
         """创建时设置所有者"""
         serializer.save(owner=self.request.user)
 
+    def create(self, request, *args, **kwargs):
+        """创建分类并返回包装的响应"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        category = Category.objects.get(id=serializer.instance.id)
+        response_serializer = CategorySerializer(category)
+
+        return Response(
+            {
+                "code": 201,
+                "message": "创建成功",
+                "data": response_serializer.data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    def retrieve(self, request, *args, **kwargs):
+        """获取分类详情并返回包装的响应"""
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(
+            {
+                "code": 200,
+                "message": "获取成功",
+                "data": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def update(self, request, *args, **kwargs):
+        """更新分类并返回包装的响应"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        category = Category.objects.get(id=instance.id)
+        response_serializer = CategorySerializer(category)
+
+        return Response(
+            {
+                "code": 200,
+                "message": "更新成功",
+                "data": response_serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
     @action(detail=False, methods=["get"])
     def tree(self, request):
         """

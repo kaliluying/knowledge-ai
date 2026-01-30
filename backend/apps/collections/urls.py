@@ -2,10 +2,15 @@
 收藏模块 URL 配置
 """
 
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import CollectionViewSet
 
 app_name = "collections"
 
+router = DefaultRouter()
+router.register(r"", CollectionViewSet, basename="collection")
+
 urlpatterns = [
-    # 收藏路由将在 Phase 3 中实现
+    path("", include(router.urls)),
 ]

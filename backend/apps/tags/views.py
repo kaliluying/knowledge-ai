@@ -2,6 +2,7 @@
 标签视图模块
 """
 
+from django.db.models import Count
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -37,7 +38,9 @@ class TagViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """获取当前用户的标签"""
         user = self.request.user
-        queryset = Tag.objects.filter(owner=user)
+        queryset = Tag.objects.filter(owner=user).annotate(
+            notes_count=Count("notes", distinct=True)
+        )
 
         # 搜索
         search = self.request.query_params.get("search", None)
@@ -56,9 +59,73 @@ class TagViewSet(viewsets.ModelViewSet):
             return TagUpdateSerializer
         return TagSerializer
 
+    def list(self, request, *args, **kwargs):
+        """获取标签列表并返回包装的响应"""
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(
+            {
+                "code": 200,
+                "message": "获取成功",
+                "data": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
     def perform_create(self, serializer):
         """创建时设置所有者"""
         serializer.save(owner=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        """创建标签并返回包装的响应"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        tag = Tag.objects.get(id=serializer.instance.id)
+        response_serializer = TagSerializer(tag)
+
+        return Response(
+            {
+                "code": 201,
+                "message": "创建成功",
+                "data": response_serializer.data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    def retrieve(self, request, *args, **kwargs):
+        """获取标签详情并返回包装的响应"""
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(
+            {
+                "code": 200,
+                "message": "获取成功",
+                "data": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def update(self, request, *args, **kwargs):
+        """更新标签并返回包装的响应"""
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        tag = Tag.objects.get(id=instance.id)
+        response_serializer = TagSerializer(tag)
+
+        return Response(
+            {
+                "code": 200,
+                "message": "更新成功",
+                "data": response_serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
 
     @action(detail=False, methods=["get"])
     def hot(self, request):
