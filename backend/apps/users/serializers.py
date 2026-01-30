@@ -76,6 +76,8 @@ class UserSerializer(serializers.ModelSerializer):
     用户详情序列化器
     """
 
+    avatar_url = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = [
@@ -83,11 +85,31 @@ class UserSerializer(serializers.ModelSerializer):
             "email",
             "username",
             "avatar",
+            "avatar_url",
             "bio",
             "created_at",
             "updated_at",
         ]
         read_only_fields = ["id", "email", "created_at", "updated_at"]
+
+    def get_avatar_url(self, obj):
+        """返回完整的头像URL"""
+        if obj.avatar:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.avatar.url)
+            return obj.avatar.url
+        return obj.avatar_url or None
+
+    def to_representation(self, instance):
+        """自定义序列化输出"""
+        data = super().to_representation(instance)
+        # 确保 avatar 字段返回完整URL
+        if instance.avatar:
+            request = self.context.get('request')
+            if request:
+                data['avatar'] = request.build_absolute_uri(instance.avatar.url)
+        return data
 
 
 class UserListSerializer(serializers.ModelSerializer):
@@ -197,3 +219,18 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
                 {"new_password_confirm": "两次输入的密码不一致"}
             )
         return attrs
+
+
+class PreferencesSerializer(serializers.ModelSerializer):
+    """
+    用户偏好设置序列化器
+    """
+
+    class Meta:
+        from .models import Profile
+        model = Profile
+        fields = [
+            "theme",
+            "language",
+            "timezone",
+        ]

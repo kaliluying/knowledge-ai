@@ -27,8 +27,26 @@ const handleSubmit = async () => {
     return;
   }
 
-  if (form.value.password.length < 6) {
-    error.value = '密码长度至少为6位';
+  // 客户端密码格式验证
+  const password = form.value.password;
+  if (password.length < 8) {
+    error.value = '密码长度至少为8个字符';
+    return;
+  }
+  if (!/[A-Z]/.test(password)) {
+    error.value = '密码必须包含至少一个大写字母';
+    return;
+  }
+  if (!/[a-z]/.test(password)) {
+    error.value = '密码必须包含至少一个小写字母';
+    return;
+  }
+  if (!/[0-9]/.test(password)) {
+    error.value = '密码必须包含至少一个数字';
+    return;
+  }
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    error.value = '密码必须包含至少一个特殊字符';
     return;
   }
 
@@ -164,8 +182,8 @@ const handleSubmit = async () => {
                   v-model="form.password"
                   :type="showPassword ? 'text' : 'password'"
                   required
-                  minlength="6"
-                  placeholder="请输入密码（至少6位）"
+                  minlength="8"
+                  placeholder="请输入密码"
                   class="form-input"
                 />
                 <button type="button" class="toggle-password" @click="showPassword = !showPassword">
@@ -178,6 +196,18 @@ const handleSubmit = async () => {
                   </svg>
                 </button>
               </div>
+            </div>
+
+            <!-- Password requirements hint -->
+            <div class="password-hint">
+              <p class="password-hint-title">密码要求：</p>
+              <ul class="password-hint-list">
+                <li class="password-hint-item">至少 8 个字符</li>
+                <li class="password-hint-item">包含大写字母（A-Z）</li>
+                <li class="password-hint-item">包含小写字母（a-z）</li>
+                <li class="password-hint-item">包含数字（0-9）</li>
+                <li class="password-hint-item">包含特殊字符（!@#$%^&amp;* 等）</li>
+              </ul>
             </div>
 
             <div class="form-group">
@@ -455,6 +485,44 @@ const handleSubmit = async () => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.password-hint {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: -8px;
+}
+
+.password-hint-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0369a1;
+  margin-bottom: 10px;
+}
+
+.password-hint-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.password-hint-item {
+  font-size: 12px;
+  color: #0c4a6e;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.password-hint-item::before {
+  content: "•";
+  color: #0284c7;
+  font-weight: bold;
 }
 
 .form-group label {

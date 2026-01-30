@@ -179,6 +179,17 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function fetchProfile() {
+    try {
+      const response = await authApi.getProfile();
+      if (response?.data) {
+        user.value = response.data;
+      }
+    } catch {
+      // Ignore errors
+    }
+  }
+
   return {
     user,
     accessToken,
@@ -191,6 +202,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     register,
     initAuth,
+    fetchProfile,
     logout,
   };
 });

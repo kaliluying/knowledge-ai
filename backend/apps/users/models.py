@@ -19,12 +19,19 @@ class User(AbstractUser):
         verbose_name="邮箱",
         help_text="用户邮箱，唯一标识",
     )
-    avatar = models.URLField(
+    avatar = models.ImageField(
+        upload_to="avatars/%Y/%m/",
+        blank=True,
+        null=True,
+        verbose_name="头像",
+        help_text="用户头像图片",
+    )
+    avatar_url = models.URLField(
         max_length=500,
         blank=True,
         null=True,
         verbose_name="头像URL",
-        help_text="用户头像的URL地址",
+        help_text="用户头像的URL地址（外部链接）",
     )
     bio = models.TextField(
         max_length=500,

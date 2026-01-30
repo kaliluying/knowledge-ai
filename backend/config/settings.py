@@ -88,8 +88,8 @@ def get_logging_config():
                 "propagate": True,
             },
             "django.db.backends": {
-                "handlers": ["console", "file"],
-                "level": "DEBUG",
+                "handlers": ["file"],
+                "level": "WARNING",
                 "propagate": False,
             },
             "django.security": {

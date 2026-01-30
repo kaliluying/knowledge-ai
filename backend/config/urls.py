@@ -15,6 +15,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
 
 urlpatterns = [
     # Admin
@@ -34,7 +35,7 @@ urlpatterns = [
     # API Attachments
     path("api/attachments/", include("apps.attachments.urls")),
     # Health check
-    path("api/health/", lambda request: {"status": "ok"}, name="health"),
+    path("api/health/", lambda request: JsonResponse({"status": "ok"}), name="health"),
 ]
 
 # Media files
