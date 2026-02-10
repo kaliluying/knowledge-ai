@@ -1,6 +1,6 @@
 # Personal Knowledge Management System - 开发任务文档
 
-> 最后更新: 2026-01-30
+> 最后更新: 2026-02-10
 
 ## 项目概述
 
@@ -249,7 +249,7 @@ winget install astral-sh.uv
 
 | 任务ID | 任务名称 | 描述 | 文件路径 | 优先级 | 状态 |
 |--------|----------|------|----------|--------|------|
-| T-086 | 自动生成 slug | 使用 title 生成唯一 slug | apps/notes/signals.py | P0 | ⏳ 待开发 |
+| T-086 | 自动生成 slug | 使用 title 生成唯一 slug | apps/notes/signals.py | P0 | ✅ 已完成 |
 
 #### 2.5.6 管理后台
 
@@ -283,7 +283,7 @@ winget install astral-sh.uv
 | T-095 | 图谱数据视图 | 获取完整图谱数据 | apps/graph/views.py | P1 | ✅ 已完成 |
 | T-096 | 相关节点视图 | 获取指定节点的相关节点 | apps/graph/views.py | P1 | ✅ 已完成 |
 | T-097 | 链接管理视图 | 创建/删除图谱链接 | apps/graph/views.py | P2 | ✅ 已完成 |
-| T-098 | 图谱生成服务 | 生成图谱数据的 service | apps/graph/services.py | P1 | ⏳ 待开发 |
+| T-098 | 图谱生成服务 | 生成图谱数据的 service | apps/graph/services.py | P1 | ✅ 已完成 |
 
 #### 2.6.4 URL 路由
 
@@ -405,9 +405,9 @@ winget install astral-sh.uv
 
 | 任务ID | 任务名称 | 描述 | 文件路径 | 优先级 | 状态 |
 |--------|----------|------|----------|--------|------|
-| T-260 | TipTap 编辑器 | Tiptap.vue | src/components/editor/Tiptap.vue | P0 | ✅ 已完成 |
-| T-261 | 浮动菜单 | BubbleMenu.vue | src/components/editor/BubbleMenu.vue | P1 | ✅ 已完成 |
-| T-262 | 固定菜单 | FloatingMenu.vue | src/components/editor/FloatingMenu.vue | P1 | ✅ 已完成 |
+| T-260 | Markdown 编辑器 | MarkdownEditor.vue | src/components/editor/MarkdownEditor.vue | P0 | ✅ 已完成 |
+| T-261 | 浮动菜单（已合并） | 已合并到 MarkdownEditor.vue | src/components/editor/MarkdownEditor.vue | P1 | ✅ 已完成 |
+| T-262 | 固定菜单（已合并） | 已合并到 MarkdownEditor.vue | src/components/editor/MarkdownEditor.vue | P1 | ✅ 已完成 |
 | T-263 | 图片上传 | ImageUploader.vue | src/components/editor/ImageUploader.vue | P1 | ✅ 已完成 |
 
 #### 3.4.2 分类组件
@@ -439,10 +439,10 @@ winget install astral-sh.uv
 
 | 任务ID | 任务名称 | 描述 | 文件路径 | 优先级 | 状态 |
 |--------|----------|------|----------|--------|------|
-| T-300 | 笔记卡片 | NoteCard.vue | src/components/notes/NoteCard.vue | P0 | ⏳ 待开发 |
-| T-301 | 笔记列表 | NoteList.vue | src/components/notes/NoteList.vue | P0 | ⏳ 待开发 |
+| T-300 | 笔记卡片 | NoteCard.vue | src/components/notes/NoteCard.vue | P0 | ✅ 已完成 |
+| T-301 | 笔记列表 | NoteList.vue | src/components/notes/NoteList.vue | P0 | ✅ 已完成 |
 | T-302 | 笔记网格 | NoteGrid.vue | src/components/notes/NoteGrid.vue | P1 | ✅ 已完成 |
-| T-303 | 搜索栏 | NoteSearch.vue | src/components/notes/NoteSearch.vue | P1 | ⏳ 待开发 |
+| T-303 | 搜索栏 | NoteSearch.vue | src/components/notes/NoteSearch.vue | P1 | ✅ 已完成 |
 
 ---
 
@@ -486,8 +486,8 @@ winget install astral-sh.uv
 
 | 任务ID | 任务名称 | 描述 | 文件路径 | 优先级 | 状态 |
 |--------|----------|------|----------|--------|------|
-| T-400 | 全局 CSS 变量 | variables.scss (颜色、间距) | src/styles/variables.scss | P0 | ⏳ 待开发 |
-| T-401 | 全局重置样式 | reset.scss | src/styles/reset.scss | P0 | ⏳ 待开发 |
+| T-400 | 全局 CSS 变量 | variables.scss (颜色、间距) | src/styles/variables.scss | P0 | ✅ 已完成 |
+| T-401 | 全局重置样式 | reset.scss | src/styles/reset.scss | P0 | ✅ 已完成 |
 | T-402 | 工具类 | utility.scss | src/styles/utility.scss | P1 | ✅ 已完成 |
 | T-403 | 动画样式 | animations.scss | src/styles/animations.scss | P2 | ✅ 已完成 |
 
@@ -562,8 +562,8 @@ winget install astral-sh.uv
 | 用户认证模块 | 17 | 17 | 0 |
 | 分类管理模块 | 8 | 8 | 0 |
 | 标签管理模块 | 7 | 7 | 0 |
-| 笔记管理模块 | 17 | 16 | 1 |
-| 知识图谱模块 | 10 | 9 | 1 |
+| 笔记管理模块 | 17 | 17 | 0 |
+| 知识图谱模块 | 10 | 10 | 0 |
 | 内容收藏模块 | 9 | 9 | 0 |
 | 附件管理模块 | 6 | 6 | 0 |
 | 前端类型定义 | 7 | 7 | 0 |
@@ -576,17 +576,17 @@ winget install astral-sh.uv
 | 分类组件 | 3 | 3 | 0 |
 | 标签组件 | 3 | 3 | 0 |
 | 图谱组件 | 4 | 4 | 0 |
-| 笔记组件 | 4 | 1 | 3 |
+| 笔记组件 | 4 | 4 | 0 |
 | 页面组件 | 13 | 13 | 0 |
 | 组合式函数 | 7 | 7 | 0 |
-| 全局样式 | 4 | 2 | 2 |
+| 全局样式 | 4 | 4 | 0 |
 | 主题支持 | 3 | 3 | 0 |
 | 后端测试 | 5 | 5 | 0 |
 | 前端测试 | 3 | 3 | 0 |
 | Docker 部署 | 4 | 4 | 0 |
 | CI/CD | 2 | 2 | 0 |
 | 文档 | 3 | 3 | 0 |
-| **总计** | **194** | **187** | **7** |
+| **总计** | **194** | **194** | **0** |
 
 ---
 
@@ -598,6 +598,8 @@ winget install astral-sh.uv
 | ⏳ 待开发 | 尚未开始 |
 | 🔄 进行中 | 正在开发 |
 
+> 本次修复: 后端测试数据格式对齐（`Note.content` 统一为字符串），相关用例已通过。
+
 ---
 
-> 更新日期: 2026-01-30
+> 更新日期: 2026-02-10

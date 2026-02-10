@@ -14,7 +14,7 @@ pytestmark = pytest.mark.django_db
 def test_note_create_creates_graph_node(test_user, test_category, test_tag):
     note = Note.objects.create(
         title="Signal Note",
-        content=[{"type": "paragraph", "content": [{"type": "text", "text": "hi"}]}],
+        content="hi",
         owner=test_user,
         category=test_category,
     )
@@ -36,7 +36,7 @@ def test_note_create_creates_graph_node(test_user, test_category, test_tag):
 def test_note_update_updates_graph_node(test_user):
     note = Note.objects.create(
         title="Original",
-        content=[{"type": "paragraph", "content": [{"type": "text", "text": "hi"}]}],
+        content="hi",
         owner=test_user,
     )
 
@@ -55,7 +55,7 @@ def test_note_update_updates_graph_node(test_user):
 def test_note_delete_removes_graph_node(test_user):
     note = Note.objects.create(
         title="To Remove",
-        content=[{"type": "paragraph", "content": [{"type": "text", "text": "hi"}]}],
+        content="hi",
         owner=test_user,
     )
     node_id = GraphNode.objects.get(
@@ -67,3 +67,21 @@ def test_note_delete_removes_graph_node(test_user):
     note.delete()
 
     assert not GraphNode.objects.filter(id=node_id).exists()
+
+
+def test_note_slug_is_generated_uniquely_for_same_title(test_user):
+    first = Note.objects.create(
+        title="重复标题",
+        content="first",
+        owner=test_user,
+    )
+    second = Note.objects.create(
+        title="重复标题",
+        content="second",
+        owner=test_user,
+    )
+
+    assert first.slug
+    assert second.slug
+    assert first.slug != second.slug
+    assert second.slug.startswith(first.slug)

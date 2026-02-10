@@ -8,11 +8,41 @@ Detect internal references in note content.
 
 import re
 from django.db import models
-from django.db.models.signals import m2m_changed, post_delete, post_save
+from django.db.models.signals import m2m_changed, post_delete, post_save, pre_save
 from django.dispatch import receiver
+from django.utils.text import slugify
 
 from apps.graph.models import GraphNode, GraphLink
 from .models import Note
+
+
+def _generate_unique_slug(title: str, current_note_id: int | None = None) -> str:
+    base_slug = slugify(title) or "note"
+    slug = base_slug
+    suffix = 1
+
+    queryset = Note.objects.filter(slug=slug)
+    if current_note_id is not None:
+        queryset = queryset.exclude(id=current_note_id)
+
+    while queryset.exists():
+        slug = f"{base_slug}-{suffix}"
+        suffix += 1
+        queryset = Note.objects.filter(slug=slug)
+        if current_note_id is not None:
+            queryset = queryset.exclude(id=current_note_id)
+
+    return slug
+
+
+@receiver(pre_save, sender=Note)
+def ensure_note_slug(sender, instance, **kwargs):
+    """保存前确保 slug 已生成且唯一。"""
+    if not instance.title:
+        return
+
+    if not instance.slug:
+        instance.slug = _generate_unique_slug(instance.title, instance.id)
 
 
 def _build_note_data(note: object) -> dict[str, object]:
@@ -86,11 +116,13 @@ def sync_note_node(sender, instance, created, **kwargs):
 def remove_note_node(sender, instance, **kwargs):
     """Remove GraphNode when note is deleted."""
     # First get the GraphNode IDs to clean up links
-    note_node_ids = list(GraphNode.objects.filter(
-        owner=instance.owner,
-        node_type="note",
-        data__note_id=instance.id,
-    ).values_list("id", flat=True))
+    note_node_ids = list(
+        GraphNode.objects.filter(
+            owner=instance.owner,
+            node_type="note",
+            data__note_id=instance.id,
+        ).values_list("id", flat=True)
+    )
 
     # Delete the GraphNode
     GraphNode.objects.filter(
@@ -105,16 +137,15 @@ def remove_note_node(sender, instance, **kwargs):
             owner=instance.owner,
             link_type="reference",
         ).filter(
-            models.Q(source_id__in=note_node_ids) |
-            models.Q(target_id__in=note_node_ids)
+            models.Q(source_id__in=note_node_ids)
+            | models.Q(target_id__in=note_node_ids)
         ).delete()
 
     # Also clean up category and tag links for this note
     GraphLink.objects.filter(
         owner=instance.owner,
     ).filter(
-        models.Q(source_id__in=note_node_ids) |
-        models.Q(target_id__in=note_node_ids)
+        models.Q(source_id__in=note_node_ids) | models.Q(target_id__in=note_node_ids)
     ).delete()
 
 
@@ -166,11 +197,13 @@ def _sync_note_tags_links(note: Note):
     tag_ids = list(note.tags.values_list("id", flat=True))
 
     # Get existing tag links
-    existing_links = list(GraphLink.objects.filter(
-        owner=note.owner,
-        source=note_node,
-        link_type="tagged",
-    ))
+    existing_links = list(
+        GraphLink.objects.filter(
+            owner=note.owner,
+            source=note_node,
+            link_type="tagged",
+        )
+    )
 
     # Get existing target IDs (GraphNode IDs for tags)
     existing_target_ids = {link.target_id for link in existing_links}
@@ -238,11 +271,13 @@ def _sync_note_reference_links(note: Note):
             referenced_nodes.append(node)
 
     # Get existing reference links
-    existing_links = list(GraphLink.objects.filter(
-        owner=note.owner,
-        source=note_node,
-        link_type="reference",
-    ))
+    existing_links = list(
+        GraphLink.objects.filter(
+            owner=note.owner,
+            source=note_node,
+            link_type="reference",
+        )
+    )
 
     # Remove links for notes that are no longer referenced
     existing_target_ids = {link.target_id for link in existing_links}

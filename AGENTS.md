@@ -1,148 +1,145 @@
-# AGENTS.md - Codebase Guidelines for AI Agents
+# AGENTS.md - Repository Guide for Agentic Coding
 
-## Project Overview
-
-Personal Knowledge Management System built with:
+## 1) Project Snapshot
+- Personal Knowledge Management System
 - Frontend: Vue 3 + TypeScript + Vite + Pinia + Tailwind CSS v4
-- Backend: Django 5.2 + Django REST Framework + PostgreSQL 17
+- Backend: Django 5.2 + DRF + PostgreSQL 17
+- Auth: JWT (djangorestframework-simplejwt)
 
-## Build / Run / Test
+## 2) Build / Lint / Test Commands
 
-### Frontend (from `frontend/package.json`)
-
+### Frontend (`frontend/`)
 ```bash
-cd frontend
 npm install
-npm run dev           # Vite dev server
-npm run build         # vue-tsc -b && vite build
-npm run preview       # Preview production build
-npm run lint          # eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix
-npm run format        # prettier --write src/
-npm run test          # Vitest watch
-npm run test:run      # Vitest run (CI)
-npm run test:ui       # Vitest UI
+npm run dev
+npm run build
+npm run preview
+npm run lint
+npm run format
+npm run test
+npm run test:run
+npm run test:ui
 ```
 
-Single test (frontend): no repo-specific script. Use Vitest CLI args via npm:
-`npm run test -- <vitest-args>` (for example, pass a test file path).
-
-### Backend
-
+Single test (frontend):
 ```bash
-cd backend
-python -m venv venv && source venv/bin/activate  # Create venv
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py runserver
-pytest                                           # Run all tests
-pytest apps/users/tests.py::TestUser::test_create_user  # Single test
-flake8 apps/                                     # Lint code
+npm run test -- tests/unit/path/to/file.spec.ts
 ```
 
-## Config Files Worth Knowing
+Vitest details (`frontend/vitest.config.ts`):
+- `environment: 'jsdom'`
+- `globals: true`
+- include: `tests/unit/**/*.{test,spec}.{js,ts,jsx,tsx}`
+- coverage provider: `v8`
 
-- `frontend/vite.config.ts`: `@` alias points to `frontend/src`.
-- `frontend/tsconfig.json`: project references to app/node tsconfigs.
-- `backend/pyproject.toml`: pytest settings (`DJANGO_SETTINGS_MODULE`, addopts).
-- `backend/utils/exceptions.py`: DRF exception handler and error format.
-- `backend/utils/responses.py`: shared `{ code, message, data, errors }` response model.
-
-## Code Style Guidelines
-
-### TypeScript / Vue 3
-
-- Use `<script setup lang="ts">` in SFCs, Composition API everywhere.
-- Imports: external libs first, then `@/` aliases; use `import type` for types.
-- Naming: components PascalCase, files kebab-case, composables `useX`.
-- Prefer `withDefaults(defineProps<Props>(), defaults)` for props and typed `defineEmits`.
-- Use `ref` for state and `computed` for derived values.
-- API modules live in `frontend/src/api/*.ts` and use the shared axios instance.
-
-Example import order:
-```typescript
-import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import { useAuthStore } from '@/stores';
-import type { User } from '@/types';
+### Backend (`backend/`)
+```bash
+uv sync
+uv run python manage.py migrate
+uv run python manage.py runserver
+uv run pytest
+uv run flake8 apps/
 ```
 
-Pinia store pattern:
-```typescript
-export const useAuthStore = defineStore('auth', () => {
-  const user = ref<User | null>(null);
-  const isLoading = ref(false);
-  const isAuthenticated = computed(() => !!accessToken.value && !!user.value);
-  async function login(params: LoginParams) { /* ... */ }
-  return { user, isLoading, isAuthenticated, login };
-});
+Single test (backend):
+```bash
+uv run pytest apps/users/tests.py::TestUser::test_create_user
 ```
 
-Error handling (pattern used in stores):
+Pytest defaults (`backend/pyproject.toml`):
+- `DJANGO_SETTINGS_MODULE = "config.settings"`
+- `python_files = ["test_*.py"]`
+- `python_classes = ["Test*"]`
+- `python_functions = ["test_*"]`
+- `addopts = "-v --tb=short"`
+
+## 3) Key Files to Read First
+- `frontend/package.json`
+- `frontend/vite.config.ts`
+- `frontend/tsconfig.app.json`
+- `frontend/vitest.config.ts`
+- `frontend/src/api/index.ts`
+- `frontend/src/stores/auth.ts`
+- `backend/pyproject.toml`
+- `backend/utils/exceptions.py`
+- `backend/utils/responses.py`
+- `backend/tests/conftest.py`
+- `backend/utils/permissions.py`
+- `backend/utils/pagination.py`
+
+## 4) Frontend Style Guide
+
+### Core Patterns
+- Use `<script setup lang="ts">` in SFCs.
+- Use Composition API (`ref`, `computed`, composables).
+- Use strongly typed props/emits.
+- Prefer `withDefaults(defineProps<Props>(), defaults)` for optional props.
+- Use `import type` for type-only imports.
+
+### Import Conventions
+- Recommended order:
+  1. Vue/framework imports
+  2. third-party packages
+  3. internal `@/` modules (`stores`, `api`, `types`)
+  4. relative local imports
+
+### Naming Conventions
+- Components/pages: PascalCase (`NoteCard.vue`, `Login.vue`)
+- Composables: `useX` (`useAuth.ts`, `useNotes.ts`)
+- Stores: file `x.ts`, export `useXStore`
+- Types: grouped under `frontend/src/types/*.ts`
+
+### State/API/Error Conventions
+- Pinia uses setup-style `defineStore('name', () => {})`.
+- API modules in `frontend/src/api/*.ts`, shared axios in `frontend/src/api/index.ts`.
+- Backend payload expected by UI: `{ code, message, data }`.
+- Paginated lists often use `{ count, next, previous, results }`.
+- Typical store-level error mapping:
+
 ```typescript
-try { await someAsyncCall(); }
 catch (error: unknown) {
   const axiosError = error as { response?: { data?: { message?: string } } };
   return { success: false, message: axiosError.response?.data?.message || 'Error' };
 }
 ```
 
-Styling:
-- Most components use `<style scoped>` with handcrafted CSS.
-- Use `:deep(...)` for nested selectors inside scoped styles.
+### Styling
+- Prefer `<style scoped>` for component isolation.
+- Use `:deep(...)` for nested child selectors in scoped styles.
+- Keep styles local unless a shared pattern is clearly needed.
 
-API response expectations:
-- Most endpoints return `{ code, message, data }`.
-- List endpoints often return pagination (`count`, `results`, `next`, `previous`).
+## 5) Backend Style Guide
 
-### Python / Django
+### Python/DRF Conventions
+- Import order: standard lib -> third-party -> local modules.
+- Naming: snake_case (functions/vars), PascalCase (classes), UPPER_SNAKE_CASE (constants).
+- Primary API shape: DRF `ModelViewSet` + serializers.
+- Use `@action` for non-CRUD endpoints.
 
-- Imports order: standard lib → third party → local apps.
-- Naming: functions/vars snake_case, classes PascalCase, constants SCREAMING_SNAKE_CASE.
-- Prefer DRF `ModelViewSet` + serializers for CRUD.
-- Use `@action` for custom endpoints and return `Response` with `{ code, message, data }`.
-- Validation errors use serializer `ValidationError` with explicit messages.
-- Exception handling is centralized via `utils.exceptions.custom_exception_handler`.
+### Response and Exception Conventions
+- Keep response payload consistent with `code`, `message`, and optional `data`/`errors`.
+- Use centralized error normalization in `utils.exceptions.custom_exception_handler`.
+- Raise explicit `ValidationError` messages in serializers/services.
 
-Example response pattern:
-```python
-return Response({"code": 200, "message": "success", "data": result})
-```
+### Permissions / Pagination / Tests
+- Reuse `utils.permissions` classes (e.g., `IsOwnerOrReadOnly`).
+- Reuse `utils.pagination` classes (e.g., `StandardPagination`, `NotePagination`).
+- Reuse fixtures from `backend/tests/conftest.py`.
+- Run targeted tests via node id: `pytest path::Class::test_name`.
 
-## Directory Structure
-
-```
+## 6) Directory Map
+```text
 frontend/src/
-├── api/              # API modules
-├── components/       # Reusable Vue components
-├── composables/      # Composition utilities
-├── layouts/          # Layout components
-├── pages/            # Route components
-├── router/           # Vue Router config
-├── stores/           # Pinia stores
-└── types/            # TypeScript interfaces
+  api/ components/ composables/ layouts/ pages/ router/ stores/ types/
 
 backend/
-├── apps/             # Django apps
-├── config/           # Settings, URLs, DRF config
-└── utils/            # Shared utilities
+  apps/ config/ tests/ utils/
 ```
 
-## Environment Variables
+## 7) Cursor / Copilot Rules
+Checked:
+- `.cursor/rules/`
+- `.cursorrules`
+- `.github/copilot-instructions.md`
 
-Frontend (`frontend/.env`):
-`VITE_API_URL=http://localhost:8000/api`
-
-Backend (`backend/.env`):
-```
-SECRET_KEY=your-secret-key
-DEBUG=True
-DATABASE_NAME=knowledge_db
-DATABASE_USER=postgres
-DATABASE_PASSWORD=your-password
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-```
-
-## Cursor / Copilot Rules
-
-No `.cursor/rules/`, `.cursorrules`, or `.github/copilot-instructions.md` found.
+Current result: no Cursor/Copilot rule files found.
