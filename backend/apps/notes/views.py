@@ -33,7 +33,7 @@ def extract_note_links(content):
         return []
 
     # 匹配 [Note Title](/notes/{id}) 格式
-    pattern = r'\[([^\]]+)\]\(/notes/(\d+)\)'
+    pattern = r"\[([^\]]+)\]\(/notes/(\d+)\)"
     matches = re.findall(pattern, content)
 
     note_ids = []
@@ -204,9 +204,7 @@ class NoteViewSet(viewsets.ModelViewSet):
             owner=user,
             source=note_node,
             link_type="reference",
-        ).exclude(
-            target_id__in=list(target_nodes.keys())
-        ).delete()
+        ).exclude(target_id__in=list(target_nodes.keys())).delete()
 
         # 创建新的 GraphLink
         for related_id, related_node in target_nodes.items():
@@ -236,11 +234,42 @@ class NoteViewSet(viewsets.ModelViewSet):
 
         return Response(
             {
-                "code": 201,
+                "code": 200,
                 "message": "创建成功",
                 "data": response_serializer.data,
             },
             status=status.HTTP_201_CREATED,
+        )
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            response = self.get_paginated_response(serializer.data)
+            return Response(
+                {
+                    "code": 200,
+                    "message": "获取成功",
+                    "data": response.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(
+            {
+                "code": 200,
+                "message": "获取成功",
+                "data": {
+                    "count": len(serializer.data),
+                    "next": None,
+                    "previous": None,
+                    "results": serializer.data,
+                },
+            },
+            status=status.HTTP_200_OK,
         )
 
     def retrieve(self, request, *args, **kwargs):
@@ -258,7 +287,7 @@ class NoteViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         """更新笔记并返回包装的响应"""
-        partial = kwargs.pop('partial', False)
+        partial = kwargs.pop("partial", False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
@@ -283,13 +312,7 @@ class NoteViewSet(viewsets.ModelViewSet):
         """删除笔记"""
         instance = self.get_object()
         self.perform_destroy(instance)
-        return Response(
-            {
-                "code": 200,
-                "message": "删除成功",
-            },
-            status=status.HTTP_200_OK,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["post"])
     def archive(self, request, id=None):
@@ -378,6 +401,7 @@ class NoteViewSet(viewsets.ModelViewSet):
             .distinct()
         )
 
+        # 分页处理
         page = self.paginate_queryset(notes)
         if page is not None:
             serializer = NoteListSerializer(page, many=True)

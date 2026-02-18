@@ -19,6 +19,7 @@ export const useGraphStore = defineStore('graph', () => {
   const relatedData = ref<GraphData | null>(null);
   const isLoading = ref(false);
   const isSimulationRunning = ref(false);
+  const sourceMode = ref<'hybrid' | 'sync_only' | 'manual_only'>('hybrid');
 
   // 计算属性
   const nodes = computed(() => graphData.value.nodes);
@@ -61,10 +62,11 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   // 获取图谱数据
-  async function fetchGraphData() {
+  async function fetchGraphData(mode?: 'hybrid' | 'sync_only' | 'manual_only') {
+    const fetchMode = mode || sourceMode.value;
     isLoading.value = true;
     try {
-      const response = await graphApi.getGraphData();
+      const response = await graphApi.getGraphData(fetchMode);
       if (response?.data) {
         graphData.value = response.data;
         return response.data;
@@ -76,6 +78,12 @@ export const useGraphStore = defineStore('graph', () => {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  // 设置数据源模式并重新获取数据
+  async function setSourceMode(mode: 'hybrid' | 'sync_only' | 'manual_only') {
+    sourceMode.value = mode;
+    await fetchGraphData(mode);
   }
 
   // 获取相关节点
@@ -179,6 +187,7 @@ export const useGraphStore = defineStore('graph', () => {
     relatedData,
     isLoading,
     isSimulationRunning,
+    sourceMode,
     nodes,
     links,
     nodeCount,
@@ -187,6 +196,7 @@ export const useGraphStore = defineStore('graph', () => {
     initSampleData,
     fetchGraphData,
     fetchRelatedNodes,
+    setSourceMode,
     selectNode,
     createLink,
     deleteLink,

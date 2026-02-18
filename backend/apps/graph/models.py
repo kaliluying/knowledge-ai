@@ -24,6 +24,11 @@ class GraphNode(models.Model):
         ("collection", "收藏"),
     ]
 
+    SOURCE_CHOICES = [
+        ("sync", "自动同步"),
+        ("manual", "手动创建"),
+    ]
+
     owner = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -48,6 +53,23 @@ class GraphNode(models.Model):
         default=dict,
         blank=True,
         verbose_name="附加数据",
+    )
+    source = models.CharField(
+        max_length=20,
+        choices=SOURCE_CHOICES,
+        default="sync",
+        verbose_name="数据来源",
+    )
+    is_locked = models.BooleanField(
+        default=False,
+        verbose_name="是否锁定",
+        help_text="锁定节点不会被自动同步覆盖",
+    )
+    original_id = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name="原始数据ID",
+        help_text="同步自其他表时的原始ID",
     )
     created_at = models.DateTimeField(
         auto_now_add=True,

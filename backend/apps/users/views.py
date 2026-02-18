@@ -9,7 +9,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.http import JsonResponse
 import json
 
@@ -85,7 +85,10 @@ class RegisterView(APIView):
             {
                 "code": 201,
                 "message": "注册成功",
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
                 "data": {
+                    "id": user.id,
                     "user": UserSerializer(user).data,
                     "access": str(refresh.access_token),
                     "refresh": str(refresh),
@@ -112,12 +115,16 @@ class LoginView(APIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        email = serializer.validated_data["email"]
+        email = serializer.validated_data.get("email")
+        username = serializer.validated_data.get("username")
         password = serializer.validated_data["password"]
 
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
+        if email:
+            user = User.objects.filter(email=email).first()
+        else:
+            user = User.objects.filter(Q(username=username) | Q(email=username)).first()
+
+        if not user:
             return Response(
                 {"code": 401, "message": "邮箱或密码不正确"},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -136,6 +143,8 @@ class LoginView(APIView):
             {
                 "code": 200,
                 "message": "登录成功",
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
                 "data": {
                     "user": UserSerializer(user).data,
                     "access": str(refresh.access_token),
@@ -227,7 +236,7 @@ class ProfileView(APIView):
         """
         获取当前用户信息
         """
-        serializer = UserSerializer(request.user, context={'request': request})
+        serializer = UserSerializer(request.user, context={"request": request})
         return Response(
             {
                 "code": 200,
@@ -242,13 +251,13 @@ class ProfileView(APIView):
         更新当前用户信息
         """
         # 处理头像上传
-        if 'avatar' in request.FILES:
+        if "avatar" in request.FILES:
             request.user.avatar.delete(save=False)  # 删除旧头像
-            request.user.avatar = request.FILES['avatar']
-            request.user.save(update_fields=['avatar', 'updated_at'])
+            request.user.avatar = request.FILES["avatar"]
+            request.user.save(update_fields=["avatar", "updated_at"])
 
             # 返回更新后的用户信息
-            serializer = UserSerializer(request.user, context={'request': request})
+            serializer = UserSerializer(request.user, context={"request": request})
             return Response(
                 {
                     "code": 200,
@@ -259,8 +268,14 @@ class ProfileView(APIView):
             )
 
         # 处理其他字段更新
+        payload = request.data.copy()
+        avatar_url = payload.get("avatar")
+        if avatar_url and isinstance(avatar_url, str) and "avatar" not in request.FILES:
+            payload.pop("avatar", None)
+            payload["avatar_url"] = avatar_url
+
         serializer = UserSerializer(
-            request.user, data=request.data, partial=True, context={'request': request}
+            request.user, data=payload, partial=True, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -347,13 +362,14 @@ class PreferencesView(APIView):
     def get(self, request):
         """获取用户偏好设置"""
         try:
-            profile = getattr(request.user, 'profile', None)
+            profile = getattr(request.user, "profile", None)
         except Exception:
             profile = None
 
         if not profile:
             # 创建默认偏好设置
             from .models import Profile
+
             profile = Profile.objects.create(user=request.user)
 
         serializer = PreferencesSerializer(profile)
@@ -369,12 +385,13 @@ class PreferencesView(APIView):
     def put(self, request):
         """更新用户偏好设置"""
         try:
-            profile = getattr(request.user, 'profile', None)
+            profile = getattr(request.user, "profile", None)
         except Exception:
             profile = None
 
         if not profile:
             from .models import Profile
+
             profile = Profile.objects.create(user=request.user)
 
         serializer = PreferencesSerializer(profile, data=request.data, partial=True)
@@ -410,16 +427,18 @@ class SessionsView(APIView):
         sessions = []
 
         # 获取当前设备信息
-        user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
+        user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
         ip_address = self.get_client_ip(request)
 
-        sessions.append({
-            "id": str(current_token) if current_token else "current",
-            "device": self.parse_user_agent(user_agent),
-            "location": f"{ip_address}",
-            "last_active": timezone.now().isoformat(),
-            "current": True,
-        })
+        sessions.append(
+            {
+                "id": str(current_token) if current_token else "current",
+                "device": self.parse_user_agent(user_agent),
+                "location": f"{ip_address}",
+                "last_active": timezone.now().isoformat(),
+                "current": True,
+            }
+        )
 
         return Response(
             {
@@ -448,11 +467,11 @@ class SessionsView(APIView):
 
     def get_client_ip(self, request):
         """获取客户端 IP 地址"""
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
         if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
+            ip = x_forwarded_for.split(",")[0]
         else:
-            ip = request.META.get('REMOTE_ADDR', 'Unknown')
+            ip = request.META.get("REMOTE_ADDR", "Unknown")
         return ip
 
     def parse_user_agent(self, user_agent):
@@ -460,22 +479,23 @@ class SessionsView(APIView):
         if not user_agent:
             return "Unknown Device"
 
-        if 'Windows' in user_agent:
+        if "Windows" in user_agent:
             return "Windows PC"
-        elif 'Macintosh' in user_agent:
+        elif "Macintosh" in user_agent:
             return "Mac"
-        elif 'Linux' in user_agent:
+        elif "Linux" in user_agent:
             return "Linux PC"
-        elif 'Android' in user_agent:
+        elif "Android" in user_agent:
             # 提取 Android 版本
             import re
-            match = re.search(r'Android (\d+)', user_agent)
+
+            match = re.search(r"Android (\d+)", user_agent)
             if match:
                 return f"Android {match.group(1)}"
             return "Android Device"
-        elif 'iPhone' in user_agent:
+        elif "iPhone" in user_agent:
             return "iPhone"
-        elif 'iPad' in user_agent:
+        elif "iPad" in user_agent:
             return "iPad"
         else:
             return "Unknown Device"
@@ -505,14 +525,13 @@ class StorageView(APIView):
 
         # 统计附件大小
         attachments = Attachment.objects.filter(user=request.user)
-        attachments_size = attachments.aggregate(
-            total_size=Count('file')
-        )['total_size'] or 0
+        attachments_size = (
+            attachments.aggregate(total_size=Count("file"))["total_size"] or 0
+        )
 
         # 统计笔记中的图片（简化处理）
         notes_with_images = Note.objects.filter(
-            user=request.user,
-            content__contains='<img'
+            user=request.user, content__contains="<img"
         ).count()
 
         return Response(
@@ -526,7 +545,9 @@ class StorageView(APIView):
                     "attachments_size": attachments_size,
                     "images_count": notes_with_images,
                     "images_size": notes_with_images * 100,  # 估算
-                    "total_size": (notes_count * 2) + attachments_size + (notes_with_images * 100),
+                    "total_size": (notes_count * 2)
+                    + attachments_size
+                    + (notes_with_images * 100),
                 },
             },
             status=status.HTTP_200_OK,
@@ -570,7 +591,7 @@ class ExportView(APIView):
 
         # 获取偏好设置
         try:
-            profile = getattr(user, 'profile', None)
+            profile = getattr(user, "profile", None)
             if profile:
                 data["preferences"] = {
                     "theme": profile.theme,
@@ -582,29 +603,40 @@ class ExportView(APIView):
 
         # 获取笔记
         notes = Note.objects.filter(user=user).values(
-            'id', 'title', 'content', 'is_archived', 'is_pinned',
-            'category_id', 'created_at', 'updated_at'
+            "id",
+            "title",
+            "content",
+            "is_archived",
+            "is_pinned",
+            "category_id",
+            "created_at",
+            "updated_at",
         )
         data["notes"] = list(notes)
 
         # 获取分类
         categories = Category.objects.filter(user=user).values(
-            'id', 'name', 'description', 'parent_id', 'tree_id', 'level',
-            'created_at', 'updated_at'
+            "id",
+            "name",
+            "description",
+            "parent_id",
+            "tree_id",
+            "level",
+            "created_at",
+            "updated_at",
         )
         data["categories"] = list(categories)
 
         # 获取标签
-        tags = Tag.objects.filter(user=user).values(
-            'id', 'name', 'color', 'created_at'
-        )
+        tags = Tag.objects.filter(user=user).values("id", "name", "color", "created_at")
         data["tags"] = list(tags)
 
         # 计算笔记中引用的标签（需要反查关联表）
         from apps.notes.models import NoteTags
+
         note_tags = NoteTags.objects.filter(
-            note_id__in=[n['id'] for n in notes]
-        ).values('note_id', 'tag_id')
+            note_id__in=[n["id"] for n in notes]
+        ).values("note_id", "tag_id")
 
         data["note_tags"] = list(note_tags)
 
@@ -629,7 +661,7 @@ class DeleteAccountView(APIView):
 
     def delete(self, request):
         """删除用户账户"""
-        password = request.data.get('password')
+        password = request.data.get("password")
 
         if not password:
             return Response(
@@ -649,7 +681,7 @@ class DeleteAccountView(APIView):
 
         # 退出登录（使 token 失效）
         try:
-            refresh_token = request.data.get('refresh')
+            refresh_token = request.data.get("refresh")
             if refresh_token:
                 token = RefreshToken(refresh_token)
                 token.blacklist()

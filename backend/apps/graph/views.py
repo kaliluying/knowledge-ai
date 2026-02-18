@@ -18,7 +18,7 @@ from .serializers import (
     GraphLinkSerializer,
     GraphLinkCreateSerializer,
 )
-from .services import get_graph_data, get_related_graph_data
+from .services import get_graph_data, get_related_graph_data, get_hybrid_graph_data
 from utils.responses import ResponseModel
 
 
@@ -27,12 +27,27 @@ class GraphDataView(APIView):
     图谱数据视图
 
     GET /api/graph/graph/
+    GET /api/graph/graph/?mode=hybrid  # 混合模式（默认）
+    GET /api/graph/graph/?mode=sync_only  # 仅同步数据
+    GET /api/graph/graph/?mode=manual_only  # 仅手动节点
     """
 
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        payload = get_graph_data(request.user)
+        mode = request.query_params.get("mode", "hybrid")
+
+        # 验证模式参数
+        valid_modes = ("hybrid", "sync_only", "manual_only")
+        if mode not in valid_modes:
+            mode = "hybrid"
+
+        # 根据模式获取数据
+        if mode == "manual_only":
+            payload = get_graph_data(request.user)
+        else:
+            payload = get_hybrid_graph_data(request.user, mode)
+
         return Response(
             ResponseModel.success(data=payload).to_dict(),
             status=status.HTTP_200_OK,
@@ -48,7 +63,17 @@ class GraphRelatedView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, node_id: int):
+    def get(self, request, node_id):
+        # 转换字符串为整数（支持负数）
+        try:
+            node_id = int(node_id)
+        except ValueError:
+            from rest_framework.response import Response
+            return Response(
+                ResponseModel.error(message="无效的节点ID").to_dict(),
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         payload = get_related_graph_data(request.user, node_id)
         return Response(
             ResponseModel.success(data=payload).to_dict(),

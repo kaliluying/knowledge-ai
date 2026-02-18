@@ -35,8 +35,9 @@ export const useNotesStore = defineStore('notes', () => {
         page_size: params?.page_size || pagination.value.pageSize,
       });
 
-      // 确保 results 是数组
-      const results = Array.isArray(response.results) ? response.results : [];
+      // 响应结构: { code, message, data: { count, next, previous, results } }
+      const data = response.data;
+      const results = Array.isArray(data?.results) ? data.results : [];
 
       if (params?.page === 1 || !params?.page) {
         notes.value = results;
@@ -47,7 +48,7 @@ export const useNotesStore = defineStore('notes', () => {
       pagination.value = {
         page: params?.page || 1,
         pageSize: results.length,
-        count: response.count,
+        count: data?.count || 0,
       };
 
       return response;

@@ -4,6 +4,8 @@
 Markdown 编辑器内容存储
 """
 
+import json
+
 from django.db import models
 from django.utils.text import slugify
 
@@ -112,46 +114,69 @@ class Note(models.Model):
         if not self.slug:
             self.slug = slugify(self.title)
 
+        self.content = self._normalize_content(self.content)
+
         # 从 Markdown 内容生成纯文本
         if self.content:
             self.plain_text = self._extract_text_from_markdown(self.content)
+        else:
+            self.plain_text = ""
 
         super().save(*args, **kwargs)
+
+    def _normalize_content(self, content):
+        if content is None:
+            return ""
+
+        if isinstance(content, str):
+            return content
+
+        if isinstance(content, (list, dict)):
+            return json.dumps(content, ensure_ascii=False)
+
+        return str(content)
 
     def _extract_text_from_markdown(self, content):
         """从 Markdown 内容提取纯文本"""
         import re
+
+        if content is None:
+            return ""
+
+        if not isinstance(content, str):
+            content = self._normalize_content(content)
+
         # 移除 Markdown 语法标记，保留纯文本
         text = content
         # 移除标题标记 (#)
-        text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
+        text = re.sub(r"^#{1,6}\s+", "", text, flags=re.MULTILINE)
         # 移除粗体标记
-        text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
-        text = re.sub(r'__(.+?)__', r'\1', text)
+        text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
+        text = re.sub(r"__(.+?)__", r"\1", text)
         # 移除斜体标记
-        text = re.sub(r'\*(.+?)\*', r'\1', text)
-        text = re.sub(r'_(.+?)_', r'\1', text)
+        text = re.sub(r"\*(.+?)\*", r"\1", text)
+        text = re.sub(r"_(.+?)_", r"\1", text)
         # 移除删除线
-        text = re.sub(r'~~(.+?)~~', r'\1', text)
+        text = re.sub(r"~~(.+?)~~", r"\1", text)
         # 移除行内代码标记
-        text = re.sub(r'`(.+?)`', r'\1', text)
+        text = re.sub(r"`(.+?)`", r"\1", text)
         # 移除代码块
-        text = re.sub(r'```[\s\S]*?```', '', text)
+        text = re.sub(r"```[\s\S]*?```", "", text)
         # 移除链接 [text](url)
-        text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+        text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
         # 移除图片
-        text = re.sub(r'!\[([^\]]*)\]\([^\)]+\)', r'\1', text)
+        text = re.sub(r"!\[([^\]]*)\]\([^\)]+\)", r"\1", text)
         # 移除引用标记
-        text = re.sub(r'^>\s+', '', text, flags=re.MULTILINE)
+        text = re.sub(r"^>\s+", "", text, flags=re.MULTILINE)
         # 移除列表标记
-        text = re.sub(r'^[\s]*[-*+]\s+', '', text, flags=re.MULTILINE)
-        text = re.sub(r'^[\s]*\d+\.\s+', '', text, flags=re.MULTILINE)
+        text = re.sub(r"^[\s]*[-*+]\s+", "", text, flags=re.MULTILINE)
+        text = re.sub(r"^[\s]*\d+\.\s+", "", text, flags=re.MULTILINE)
         # 移除水平线
-        text = re.sub(r'^[-*_]{3,}$', '', text, flags=re.MULTILINE)
+        text = re.sub(r"^[-*_]{3,}$", "", text, flags=re.MULTILINE)
         # 移除 HTML 标签
-        text = re.sub(r'<[^>]+>', '', text)
+        text = re.sub(r"<[^>]+>", "", text)
         # 合并空白字符
-        text = re.sub(r'\s+', ' ', text).strip()
+        text = re.sub(r"\s+", " ", text).strip()
 
         return text
 

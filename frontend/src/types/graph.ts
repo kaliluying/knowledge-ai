@@ -3,9 +3,12 @@
  */
 
 export interface GraphNode {
-  id: number;
+  id: string | number;
+  original_id?: number;
   name: string;
   type: 'note' | 'category' | 'tag';
+  source?: 'sync' | 'manual';
+  is_locked?: boolean;
   value: number;
   category?: string;
   tags?: string[];
@@ -13,9 +16,9 @@ export interface GraphNode {
 }
 
 export interface GraphLink {
-  id: number;
-  source: number;
-  target: number;
+  id: string | number;
+  source: string | number;
+  target: string | number;
   type: string;
   strength: number;
 }
@@ -27,9 +30,12 @@ export interface GraphData {
 
 // D3 simulation types - will be properly typed when D3 is implemented
 export interface GraphNodeDatum {
-  id: number;
+  id: string | number;
+  original_id?: number;
   name: string;
   type: 'note' | 'category' | 'tag';
+  source?: 'sync' | 'manual';
+  is_locked?: boolean;
   value: number;
   x?: number;
   y?: number;
@@ -41,7 +47,7 @@ export interface GraphNodeDatum {
 }
 
 export interface GraphLinkDatum {
-  id: number;
+  id: string | number;
   source: GraphNodeDatum;
   target: GraphNodeDatum;
   type: string;

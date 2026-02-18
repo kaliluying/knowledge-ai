@@ -87,12 +87,17 @@ class TagViewSet(viewsets.ModelViewSet):
 
         return Response(
             {
-                "code": 201,
+                "code": 200,
                 "message": "创建成功",
                 "data": response_serializer.data,
             },
             status=status.HTTP_201_CREATED,
         )
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def retrieve(self, request, *args, **kwargs):
         """获取标签详情并返回包装的响应"""

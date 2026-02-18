@@ -7,15 +7,16 @@ import type { GraphData, GraphNode, GraphLink } from '@/types';
 
 export const graphApi = {
   // 获取完整图谱数据
-  async getGraphData() {
+  async getGraphData(mode: 'hybrid' | 'sync_only' | 'manual_only' = 'hybrid') {
     const response = await api.get<{ code: number; message: string; data: GraphData }>(
-      '/graph/graph/'
+      '/graph/graph/',
+      { params: { mode } }
     );
     return response.data;
   },
 
   // 获取指定节点的相关节点
-  async getRelatedNodes(nodeId: number) {
+  async getRelatedNodes(nodeId: string | number) {
     const response = await api.get<{ code: number; message: string; data: { nodes: GraphNode[]; links: GraphLink[] } }>(
       `/graph/related/${nodeId}/`
     );

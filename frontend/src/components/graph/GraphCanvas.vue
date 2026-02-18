@@ -45,18 +45,52 @@ const isLoading = computed(() => graphStore.isLoading);
 
 let simulation: d3.Simulation<GraphNodeDatum, GraphLinkDatum> | null = null;
 let zoomBehavior: d3.ZoomBehavior<SVGSVGElement, unknown> | null = null;
-const updatePositionsRef = ref<(() => void) | null>(null);
 let resizeObserver: ResizeObserver | null = null;
-let draggingNode: GraphNodeDatum | null = null;
+let linksSelection: d3.Selection<SVGLineElement, GraphLinkDatum, SVGGElement, unknown> | null = null;
+let nodesSelection: d3.Selection<SVGGElement, GraphNodeDatum, SVGGElement, unknown> | null = null;
+let nodeData: GraphNodeDatum[] = [];
+const nodePositions = new Map<string | number, { x: number; y: number }>();
+// #region agent log
+let _isDragging = false;
+let _initCount = 0;
+// #endregion
+let _dragMoved = false;
 
-const nodeColors = {
+const nodeColors: Record<string, string> = {
   note: '#8b5cf6',
   category: '#10b981',
   tag: '#f59e0b',
 };
 
+const nodeBorderColors: Record<string, string> = {
+  sync: '#ffffff',
+  manual: '#ef4444',
+};
+
+function updatePositions() {
+  if (!linksSelection || !nodesSelection) return;
+
+  nodeData.forEach(node => {
+    if (node.x !== undefined && node.y !== undefined) {
+      nodePositions.set(node.id, { x: node.x, y: node.y });
+    }
+  });
+
+  linksSelection
+    .attr('x1', d => (d.source as GraphNodeDatum).x ?? 0)
+    .attr('y1', d => (d.source as GraphNodeDatum).y ?? 0)
+    .attr('x2', d => (d.target as GraphNodeDatum).x ?? 0)
+    .attr('y2', d => (d.target as GraphNodeDatum).y ?? 0);
+
+  nodesSelection.attr('transform', d => `translate(${d.x ?? 0},${d.y ?? 0})`);
+}
+
 const initializeSimulation = () => {
   if (!svgRef.value) return;
+  // #region agent log
+  _initCount++;
+  console.warn('[DBG-e83a4b] INIT', JSON.stringify({isDragging:_isDragging,initCount:_initCount}));
+  // #endregion
 
   const width = containerRef.value?.clientWidth || props.width;
   const height = containerRef.value?.clientHeight || props.height;
@@ -64,43 +98,41 @@ const initializeSimulation = () => {
 
   simulation?.stop();
   simulation = null;
+  linksSelection = null;
+  nodesSelection = null;
 
   if (nodes.value.length === 0) {
     d3.select(svgRef.value).selectAll('*').remove();
-    simulation?.stop();
+    nodePositions.clear();
     return;
   }
 
   const minSize = props.nodeSizeRange[0];
   const maxSize = props.nodeSizeRange[1];
 
-  // 准备数据
-  const nodeData: GraphNodeDatum[] = nodes.value.map(node => ({
-    ...node,
-    value: minSize + (node.value / 100) * (maxSize - minSize),
-  }));
+  nodeData = nodes.value.map(node => {
+    const saved = nodePositions.get(node.id);
+    return {
+      ...node,
+      x: saved?.x,
+      y: saved?.y,
+      value: minSize + (node.value / 100) * (maxSize - minSize),
+    };
+  });
 
   const linkData: GraphLinkDatum[] = links.value.map(link => {
     const source = nodeData.find(n => n.id === link.source);
     const target = nodeData.find(n => n.id === link.target);
-    if (!source || !target) {
-      return null;
-    }
-    return {
-      ...link,
-      source,
-      target,
-    };
+    if (!source || !target) return null;
+    return { ...link, source, target };
   }).filter(Boolean) as GraphLinkDatum[];
 
   const centerX = width / 2;
   const centerY = height / 2;
 
-  // 创建 SVG 内容
   const svg = d3.select(svgRef.value);
   svg.selectAll('*').remove();
 
-  // 创建箭头标记
   svg.append('defs').selectAll('marker')
     .data(['end'])
     .enter()
@@ -116,9 +148,10 @@ const initializeSimulation = () => {
     .attr('d', 'M0,-5L10,0L0,5')
     .attr('fill', '#9ca3af');
 
-  // 创建连线
-  const linkGroup = svg.append('g').attr('class', 'links');
-  const linksSelection = linkGroup.selectAll('line')
+  const container = svg.append('g').attr('class', 'graph-container');
+
+  const linkGroup = container.append('g').attr('class', 'links');
+  linksSelection = linkGroup.selectAll('line')
     .data(linkData)
     .enter()
     .append('line')
@@ -126,29 +159,60 @@ const initializeSimulation = () => {
     .attr('stroke', '#9ca3af')
     .attr('stroke-width', 2)
     .attr('stroke-opacity', 0.6);
-    // .attr('marker-end', 'url(#arrow)'); // 移除箭头
 
-  // 创建节点组
-  const nodeGroup = svg.append('g').attr('class', 'nodes');
-  const nodesSelection = nodeGroup.selectAll('g')
+  const nodeGroup = container.append('g').attr('class', 'nodes');
+
+  nodesSelection = nodeGroup.selectAll('g')
     .data(nodeData)
     .enter()
     .append('g')
     .attr('class', 'node')
+    .attr('role', 'button')
+    .attr('aria-label', d => `node-${d.id}`)
     .style('cursor', props.interactive ? 'pointer' : 'default')
-    .call(d3.drag<SVGGElement, GraphNodeDatum>()
-      .on('start', dragStarted)
-      .on('drag', dragged)
-      .on('end', dragEnded));
+    .style('touch-action', 'none');
 
-  // 节点圆
+  const dragBehavior = d3.drag<SVGGElement, GraphNodeDatum>()
+    .on('start', function(event, d) {
+      event.sourceEvent.stopPropagation();
+      _isDragging = true;
+      _dragMoved = false;
+      if (!event.active && simulation) simulation.alphaTarget(0.02).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+      // #region agent log
+      console.warn('[DBG-e83a4b] dragStart', JSON.stringify({id: d.id, x: d.x, y: d.y}));
+      // #endregion
+      emit('nodeDragStart', d as unknown as GraphNode);
+    })
+    .on('drag', function(event, d) {
+      _dragMoved = true;
+      d.fx = event.x;
+      d.fy = event.y;
+    })
+    .on('end', function(event, d) {
+      if (!event.active && simulation) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+      // #region agent log
+      console.warn('[DBG-e83a4b] dragEnd', JSON.stringify({id: d.id, x: d.x, y: d.y, moved: _dragMoved}));
+      // #endregion
+      if (_dragMoved) {
+        setTimeout(() => { _isDragging = false; }, 100);
+      } else {
+        _isDragging = false;
+      }
+      emit('nodeDragEnd', d as unknown as GraphNode);
+    });
+
+  nodesSelection.call(dragBehavior);
+
   nodesSelection.append('circle')
     .attr('r', d => d.value)
     .attr('fill', d => nodeColors[d.type] || '#8b5cf6')
-    .attr('stroke', '#fff')
-    .attr('stroke-width', 2);
+    .attr('stroke', d => nodeBorderColors[d.source || 'sync'] || '#fff')
+    .attr('stroke-width', d => d.source === 'manual' ? 3 : 2);
 
-  // 节点标签
   if (props.showLabels) {
     nodesSelection.append('text')
       .attr('dy', d => d.value + 15)
@@ -158,9 +222,12 @@ const initializeSimulation = () => {
       .text(d => d.name.length > 10 ? d.name.substring(0, 10) + '...' : d.name);
   }
 
-  // 点击事件
-  if (props.interactive) {
+  if (props.interactive && nodesSelection && linksSelection) {
     nodesSelection.on('click', (event, d) => {
+      // #region agent log
+      console.warn('[DBG-e83a4b] CLICK', JSON.stringify({nodeId:d.id,isDragging:_isDragging}));
+      // #endregion
+      if (_isDragging) return;
       event.stopPropagation();
       emit('nodeClick', d as unknown as GraphNode);
       graphStore.selectNode(d as unknown as GraphNode);
@@ -176,22 +243,6 @@ const initializeSimulation = () => {
       graphStore.selectNode(null);
     });
   }
-
-  const updatePositions = () => {
-    linksSelection
-      .attr('x1', d => (d.source as GraphNodeDatum).x || 0)
-      .attr('y1', d => (d.source as GraphNodeDatum).y || 0)
-      .attr('x2', d => (d.target as GraphNodeDatum).x || 0)
-      .attr('y2', d => (d.target as GraphNodeDatum).y || 0);
-
-    nodesSelection.attr('transform', d => {
-      const x = d.x || 0;
-      const y = d.y || 0;
-      return `translate(${x},${y})`;
-    });
-  };
-
-  updatePositionsRef.value = updatePositions;
 
   const applyStaticLayout = (layout: 'circular' | 'grid') => {
     const count = nodeData.length;
@@ -223,43 +274,22 @@ const initializeSimulation = () => {
 
   if (props.layout === 'force') {
     simulation = d3.forceSimulation<GraphNodeDatum>(nodeData)
-      .alphaDecay(0.02)  // 更慢衰减，拖动时更流畅
-      .velocityDecay(0.3)  // 减少速度衰减，跟手
+      .alphaDecay(0.02)
+      .velocityDecay(0.3)
       .force('link', d3.forceLink<GraphNodeDatum, GraphLinkDatum>(linkData)
         .id(d => d.id)
         .distance(120)
-        .strength(0.3))  // 减弱链接力
-      .force('charge', d3.forceManyBody().strength(-150))  // 减弱排斥力
-      .force('center', d3.forceCenter(centerX, centerY).strength(0.05))  // 减弱中心力
-      .force('collision', d3.forceCollide()
+        .strength(0.8))
+      .force('charge', d3.forceManyBody().strength(-300))
+      .force('center', d3.forceCenter(centerX, centerY).strength(0.05))
+      .force('collision', d3.forceCollide<GraphNodeDatum>()
         .radius(d => (d.value || 20) + 15)
-        .strength(0.5));  // 减弱碰撞力
+        .strength(1)
+        .iterations(3));
 
-    // 添加边界约束力，防止节点飞出容器
-    const padding = 60;
-    simulation.force('box', () => {
-      nodeData.forEach(node => {
-        // 拖动中的节点不应用边界约束
-        if (node === draggingNode) return;
-        if (node.x === undefined || node.y === undefined) return;
-
-        // 约束 x 坐标（柔和处理）
-        if (node.x < padding) {
-          node.x = padding + (node.x - padding) * 0.1;
-        } else if (node.x > width - padding) {
-          node.x = width - padding + (node.x - (width - padding)) * 0.1;
-        }
-
-        // 约束 y 坐标（柔和处理）
-        if (node.y < padding) {
-          node.y = padding + (node.y - padding) * 0.1;
-        } else if (node.y > height - padding) {
-          node.y = height - padding + (node.y - (height - padding)) * 0.1;
-        }
-      });
+    simulation.on('tick', () => {
+      updatePositions();
     });
-
-    simulation.on('tick', updatePositions);
   } else {
     simulation?.stop();
     simulation = null;
@@ -267,58 +297,21 @@ const initializeSimulation = () => {
     updatePositions();
   }
 
-  // 添加缩放
   zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
     .scaleExtent([0.1, 4])
+    .filter((event) => {
+      if (event.type === 'mousedown' || event.type === 'pointerdown') {
+        const target = event.target as Element;
+        if (target?.closest?.('.node')) return false;
+      }
+      return !event.button;
+    })
     .on('zoom', (event) => {
-      svg.selectAll('g').attr('transform', event.transform);
+      container.attr('transform', event.transform);
     });
 
   svg.call(zoomBehavior);
 };
-
-function dragStarted(event: d3.D3DragEvent<SVGGElement, GraphNodeDatum, GraphNodeDatum>, d: GraphNodeDatum) {
-  if (!event.active && simulation) {
-    simulation.alphaTarget(0.5).restart();
-  }
-  // 保存原始位置
-  d.fx = event.x;
-  d.fy = event.y;
-  d.x = event.x;
-  d.y = event.y;
-  draggingNode = d;
-  emit('nodeDragStart', d as unknown as GraphNode);
-}
-
-function dragged(event: d3.D3DragEvent<SVGGElement, GraphNodeDatum, GraphNodeDatum>, d: GraphNodeDatum) {
-  // 实时跟随鼠标
-  d.fx = event.x;
-  d.fy = event.y;
-  d.x = event.x;
-  d.y = event.y;
-
-  // 保持 simulation 活跃
-  if (simulation) {
-    simulation.alpha(1).restart();
-  }
-
-  // 立即更新视图
-  if (updatePositionsRef.value) {
-    updatePositionsRef.value();
-  }
-}
-
-function dragEnded(event: d3.D3DragEvent<SVGGElement, GraphNodeDatum, GraphNodeDatum>, d: GraphNodeDatum) {
-  if (!event.active && simulation) {
-    simulation.alphaTarget(0);
-  }
-  if (simulation) {
-    d.fx = null;
-    d.fy = null;
-  }
-  draggingNode = null;
-  emit('nodeDragEnd', d as unknown as GraphNode);
-}
 
 const resetZoom = () => {
   if (svgRef.value && zoomBehavior) {
@@ -376,6 +369,9 @@ const zoomOut = () => {
 onMounted(() => {
   if (containerRef.value) {
     resizeObserver = new ResizeObserver(() => {
+      // #region agent log
+      console.warn('[DBG-e83a4b] RESIZE', JSON.stringify({isDragging:_isDragging}));
+      // #endregion
       initializeSimulation();
     });
     resizeObserver.observe(containerRef.value);
@@ -383,14 +379,20 @@ onMounted(() => {
   initializeSimulation();
 });
 
-watch([nodes, links, () => props.layout], () => {
+watch([() => nodes.value.length, () => links.value.length, () => props.layout], () => {
+  // #region agent log
+  console.warn('[DBG-e83a4b] WATCH', JSON.stringify({isDragging:_isDragging,nodesLen:nodes.value.length,linksLen:links.value.length}));
+  // #endregion
   initializeSimulation();
-}, { deep: true });
+});
 
 onUnmounted(() => {
   resizeObserver?.disconnect();
   simulation?.stop();
 });
+
+// #region agent log
+// #endregion
 
 defineExpose({
   resetZoom,
@@ -409,6 +411,9 @@ defineExpose({
       class="graph-svg"
     ></svg>
 
+    <!-- #region agent log -->
+    <div style="position:absolute;top:4px;left:4px;z-index:99;font-size:10px;padding:2px 6px;background:rgba(0,0,0,0.5);color:#0f0;border-radius:4px;pointer-events:none">v10-std</div>
+    <!-- #endregion -->
     <div v-if="isLoading" class="loading-overlay">
       <div class="loading-spinner"></div>
       <span>加载中...</span>

@@ -11,6 +11,7 @@ const graphCanvasRef = ref<InstanceType<typeof GraphCanvas> | null>(null);
 
 const searchQuery = ref('');
 const selectedType = ref<string | null>(null);
+const selectedSource = ref<'hybrid' | 'sync_only' | 'manual_only'>('hybrid');
 const errorMessage = ref('');
 const relatedError = ref('');
 const subgraphMode = ref(false);
@@ -65,7 +66,7 @@ const fetchGraph = async () => {
   graphStore.clearRelatedData();
   graphStore.selectNode(null);
   try {
-    await graphStore.fetchGraphData();
+    await graphStore.fetchGraphData(selectedSource.value);
   } catch (error) {
     errorMessage.value = '图谱数据加载失败，请稍后重试';
   }
@@ -78,6 +79,11 @@ const clearFilters = () => {
 
 const handleFilterChange = (type: string | null) => {
   selectedType.value = type;
+};
+
+const handleSourceChange = async (source: 'hybrid' | 'sync_only' | 'manual_only') => {
+  selectedSource.value = source;
+  await fetchGraph();
 };
 
 const handleLayoutChange = (layout: string) => {
@@ -167,17 +173,43 @@ onMounted(() => {
     </div>
 
     <div class="toolbar">
-      <GraphControls
-        :show-filter="true"
-        :active-type="selectedType"
-        :active-layout="currentLayout"
-        @zoom-in="handleZoomIn"
-        @zoom-out="handleZoomOut"
-        @fit-to-view="handleFitToView"
-        @reset="handleReset"
-        @filter-change="handleFilterChange"
-        @layout-change="handleLayoutChange"
-      />
+      <div class="toolbar-row">
+        <GraphControls
+          :show-filter="true"
+          :active-type="selectedType"
+          :active-layout="currentLayout"
+          @zoom-in="handleZoomIn"
+          @zoom-out="handleZoomOut"
+          @fit-to-view="handleFitToView"
+          @reset="handleReset"
+          @filter-change="handleFilterChange"
+          @layout-change="handleLayoutChange"
+        />
+
+        <div class="source-filter">
+          <span class="filter-label">数据来源：</span>
+          <div class="filter-buttons">
+            <button
+              :class="['filter-btn', { active: selectedSource === 'hybrid' }]"
+              @click="handleSourceChange('hybrid')"
+            >
+              全部
+            </button>
+            <button
+              :class="['filter-btn', { active: selectedSource === 'sync_only' }]"
+              @click="handleSourceChange('sync_only')"
+            >
+              同步数据
+            </button>
+            <button
+              :class="['filter-btn', { active: selectedSource === 'manual_only' }]"
+              @click="handleSourceChange('manual_only')"
+            >
+              手动节点
+            </button>
+          </div>
+        </div>
+      </div>
 
       <div v-if="hasFilters" class="filter-summary">
         <span>当前筛选：{{ stats.nodes }} 节点 / {{ stats.links }} 连接</span>
@@ -308,6 +340,52 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.toolbar-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.source-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-label {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.filter-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #374151;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.filter-btn.active {
+  background: #8b5cf6;
+  border-color: #8b5cf6;
+  color: white;
 }
 
 .filter-summary {

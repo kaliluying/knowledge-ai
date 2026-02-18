@@ -27,6 +27,8 @@ export interface RegisterParams {
 export interface AuthResponse {
   code: number;
   message: string;
+  access?: string;
+  refresh?: string;
   data: {
     user: User;
     access: string;

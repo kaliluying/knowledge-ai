@@ -14,6 +14,6 @@ router.register(r"links", GraphLinkViewSet, basename="link")
 
 urlpatterns = [
     path("graph/", GraphDataView.as_view(), name="graph-data"),
-    path("related/<int:node_id>/", GraphRelatedView.as_view(), name="graph-related"),
+    path("related/<slug:node_id>/", GraphRelatedView.as_view(), name="graph-related"),
     path("", include(router.urls)),
 ]

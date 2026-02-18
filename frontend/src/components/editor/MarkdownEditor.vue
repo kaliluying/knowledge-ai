@@ -99,27 +99,42 @@ const insertNoteLink = (note: NoteSuggestion) => {
   // Store the mapping for preview rendering
   noteLinkMappings.value[note.title] = note.id;
 
+  const doc = editorView.value.state.doc;
+  const currentContent = doc.toString();
+
+  // Find the last [[ before the end of the content
+  const lastDoubleOpen = currentContent.lastIndexOf('[[');
+
+  if (lastDoubleOpen === -1) {
+    // No [[ found, just insert at cursor
+    const selection = editorView.value.state.selection.main;
+    const cursorPos = selection.from;
+    const link = `[${note.title}](/notes/${note.id})`;
+    editorView.value.dispatch({
+      changes: { from: cursorPos, insert: link }
+    });
+    hideNotePopup();
+    return;
+  }
+
+  // Get cursor position
   const selection = editorView.value.state.selection.main;
   const cursorPos = selection.from;
-  const doc = editorView.value.state.doc;
 
-  // Get text after cursor to check for ]]
-  const textAfter = doc.sliceString(cursorPos, Math.min(cursorPos + 5, doc.length));
-
-  // Calculate how much to delete after cursor
+  // Also check for ]] after cursor
+  const textAfterCursor = doc.sliceString(cursorPos, Math.min(cursorPos + 5, doc.length));
   let deleteAfter = 0;
-  if (textAfter.startsWith(']]')) {
+  if (textAfterCursor.startsWith(']]')) {
     deleteAfter = 2;
   }
 
-  // Build the link
+  // Delete from [[ to cursor + any trailing ]]
+  const deleteEnd = cursorPos + deleteAfter;
   const link = `[${note.title}](/notes/${note.id})`;
 
-  // Apply changes: delete closing ]] if present, then insert link
+  // Delete from [[ to deleteEnd, then insert link
   editorView.value.dispatch({
-    changes: [
-      { from: cursorPos, to: cursorPos + deleteAfter, insert: link }
-    ]
+    changes: { from: lastDoubleOpen, to: deleteEnd, insert: link }
   });
 
   hideNotePopup();
@@ -249,12 +264,11 @@ const createEditor = () => {
 
       if (isInside) {
         const coords = update.view?.coordsAtPos(cursorPos);
-        const containerRect = update.view?.dom.getBoundingClientRect();
-
-        if (coords && containerRect) {
+        if (coords) {
+          // coordsAtPos returns viewport coordinates, use directly with position:fixed
           showNoteMentionPopup(query, {
-            top: coords.bottom - containerRect.top,
-            left: coords.left - containerRect.left,
+            top: coords.bottom,
+            left: coords.left,
           });
         }
       } else if (!update.view?.dom.closest('.note-popup')) {
@@ -274,6 +288,29 @@ const createEditor = () => {
       keymap.of([...defaultKeymap, ...historyKeymap]),
       history(),
       updateListener,
+      // Custom keymap for popup handling - higher priority
+      keymap.of([
+        {
+          key: 'Enter',
+          run: () => {
+            if (showNotePopup.value && notePopupResults.value[notePopupIndex.value]) {
+              insertNoteLink(notePopupResults.value[notePopupIndex.value]);
+              return true; // Prevent default (newline)
+            }
+            return false;
+          },
+        },
+        {
+          key: 'Escape',
+          run: () => {
+            if (showNotePopup.value) {
+              hideNotePopup();
+              return true;
+            }
+            return false;
+          },
+        },
+      ]),
       EditorView.lineWrapping,
       EditorView.theme({
         '&': {
@@ -723,7 +760,7 @@ defineExpose({ editor: editorView });
 
 /* Note popup */
 .note-popup {
-  position: absolute;
+  position: fixed;
   width: 300px;
   background: white;
   border-radius: 12px;

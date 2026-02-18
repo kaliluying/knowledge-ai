@@ -64,7 +64,7 @@ def get_logging_config():
             },
             "file": {
                 "level": "INFO",
-                "class": "logging.handlers.TimedRotatingFileHandler",
+                "class": "utils.logging_handlers.SafeTimedRotatingFileHandler",
                 "filename": str(LOG_DIR / "django.log"),
                 "when": "midnight",
                 "backupCount": 14,
@@ -73,7 +73,7 @@ def get_logging_config():
             },
             "error_file": {
                 "level": "ERROR",
-                "class": "logging.handlers.TimedRotatingFileHandler",
+                "class": "utils.logging_handlers.SafeTimedRotatingFileHandler",
                 "filename": str(LOG_DIR / "errors.log"),
                 "when": "midnight",
                 "backupCount": 30,
@@ -283,12 +283,16 @@ SIMPLE_JWT = {
 }
 
 # CORS Configuration
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "https://knowledge.yourdomain.com",  # 生产环境
-    "https://www.knowledge.yourdomain.com",
-]
+# 开发环境：允许所有来源
+CORS_ALLOW_ALL_ORIGINS = True
+
+# 生产环境：使用指定来源
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+#     "http://localhost:5173",
+#     "https://knowledge.yourdomain.com",
+#     "https://www.knowledge.yourdomain.com",
+# ]
 
 CORS_ALLOW_CREDENTIALS = True
 

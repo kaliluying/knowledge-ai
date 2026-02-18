@@ -77,11 +77,23 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
         return Response(
             {
-                "code": 201,
+                "code": 200,
                 "message": "创建成功",
                 "data": response_serializer.data,
             },
             status=status.HTTP_201_CREATED,
+        )
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(
+            {
+                "code": 200,
+                "message": "获取成功",
+                "data": serializer.data,
+            },
+            status=status.HTTP_200_OK,
         )
 
     def retrieve(self, request, *args, **kwargs):
@@ -99,7 +111,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         """更新分类并返回包装的响应"""
-        partial = kwargs.pop('partial', False)
+        partial = kwargs.pop("partial", False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
@@ -214,7 +226,4 @@ class CategoryViewSet(viewsets.ModelViewSet):
         # 删除分类
         category.delete()
 
-        return Response(
-            {"code": 200, "message": "删除成功"},
-            status=status.HTTP_200_OK,
-        )
+        return Response(status=status.HTTP_204_NO_CONTENT)

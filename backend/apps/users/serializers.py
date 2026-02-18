@@ -18,7 +18,6 @@ class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True,
         required=True,
-        validators=[validate_password],
         style={"input_type": "password"},
     )
     password_confirm = serializers.CharField(
@@ -95,7 +94,7 @@ class UserSerializer(serializers.ModelSerializer):
     def get_avatar_url(self, obj):
         """返回完整的头像URL"""
         if obj.avatar:
-            request = self.context.get('request')
+            request = self.context.get("request")
             if request:
                 return request.build_absolute_uri(obj.avatar.url)
             return obj.avatar.url
@@ -106,9 +105,9 @@ class UserSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         # 确保 avatar 字段返回完整URL
         if instance.avatar:
-            request = self.context.get('request')
+            request = self.context.get("request")
             if request:
-                data['avatar'] = request.build_absolute_uri(instance.avatar.url)
+                data["avatar"] = request.build_absolute_uri(instance.avatar.url)
         return data
 
 
@@ -131,12 +130,18 @@ class LoginSerializer(serializers.Serializer):
     用户登录序列化器
     """
 
-    email = serializers.EmailField(required=True)
+    email = serializers.EmailField(required=False)
+    username = serializers.CharField(required=False)
     password = serializers.CharField(
         required=True,
         write_only=True,
         style={"input_type": "password"},
     )
+
+    def validate(self, attrs):
+        if not attrs.get("email") and not attrs.get("username"):
+            raise serializers.ValidationError("请提供邮箱或用户名")
+        return attrs
 
 
 class TokenResponseSerializer(serializers.Serializer):
@@ -228,6 +233,7 @@ class PreferencesSerializer(serializers.ModelSerializer):
 
     class Meta:
         from .models import Profile
+
         model = Profile
         fields = [
             "theme",

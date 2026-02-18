@@ -19,7 +19,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isInitialized = ref(false);
 
   // 计算属性
-  const isAuthenticated = computed(() => !!accessToken.value);
+  const isAuthenticated = computed(() => !!accessToken.value || !!user.value);
   const userName = computed(() => user.value?.username || '');
   const userAvatar = computed(() => user.value?.avatar || '');
 
@@ -28,7 +28,10 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = true;
     try {
       const response = await authApi.login(params);
-      const { user: userData, access, refresh } = response?.data || {};
+      // 从 data 中获取 user，从 data 或顶层获取 token（兼容两种响应格式）
+      const userData = response?.data?.user;
+      const access = response?.data?.access || response?.access;
+      const refresh = response?.data?.refresh || response?.refresh;
 
       if (userData && access && refresh) {
         user.value = userData;
@@ -57,7 +60,10 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading.value = true;
     try {
       const response = await authApi.register(params);
-      const { user: userData, access, refresh } = response?.data || {};
+      // 从 data 中获取 user，从 data 或顶层获取 token（兼容两种响应格式）
+      const userData = response?.data?.user;
+      const access = response?.data?.access || response?.access;
+      const refresh = response?.data?.refresh || response?.refresh;
 
       if (userData && access && refresh) {
         user.value = userData;
