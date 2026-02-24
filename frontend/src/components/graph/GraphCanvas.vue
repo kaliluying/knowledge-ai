@@ -50,11 +50,9 @@ let linksSelection: d3.Selection<SVGLineElement, GraphLinkDatum, SVGGElement, un
 let nodesSelection: d3.Selection<SVGGElement, GraphNodeDatum, SVGGElement, unknown> | null = null;
 let nodeData: GraphNodeDatum[] = [];
 const nodePositions = new Map<string | number, { x: number; y: number }>();
-// #region agent log
 let _isDragging = false;
-let _initCount = 0;
-// #endregion
 let _dragMoved = false;
+let _draggingNodeId: string | number | null = null;
 
 const nodeColors: Record<string, string> = {
   note: '#8b5cf6',
@@ -76,21 +74,24 @@ function updatePositions() {
     }
   });
 
+  // 更新线段
   linksSelection
     .attr('x1', d => (d.source as GraphNodeDatum).x ?? 0)
     .attr('y1', d => (d.source as GraphNodeDatum).y ?? 0)
     .attr('x2', d => (d.target as GraphNodeDatum).x ?? 0)
     .attr('y2', d => (d.target as GraphNodeDatum).y ?? 0);
 
-  nodesSelection.attr('transform', d => `translate(${d.x ?? 0},${d.y ?? 0})`);
+  // 更新节点：跳过被拖拽的节点（保留 drag 设置的位置）
+  nodesSelection.each(function(d) {
+    if (d.id === _draggingNodeId) {
+      return; // 跳过被拖拽的节点
+    }
+    d3.select(this).attr('transform', `translate(${d.x ?? 0},${d.y ?? 0})`);
+  });
 }
 
 const initializeSimulation = () => {
   if (!svgRef.value) return;
-  // #region agent log
-  _initCount++;
-  console.warn('[DBG-e83a4b] INIT', JSON.stringify({isDragging:_isDragging,initCount:_initCount}));
-  // #endregion
 
   const width = containerRef.value?.clientWidth || props.width;
   const height = containerRef.value?.clientHeight || props.height;
@@ -177,26 +178,24 @@ const initializeSimulation = () => {
       event.sourceEvent.stopPropagation();
       _isDragging = true;
       _dragMoved = false;
+      _draggingNodeId = d.id;
       if (!event.active && simulation) simulation.alphaTarget(0.02).restart();
       d.fx = d.x;
       d.fy = d.y;
-      // #region agent log
-      console.warn('[DBG-e83a4b] dragStart', JSON.stringify({id: d.id, x: d.x, y: d.y}));
-      // #endregion
       emit('nodeDragStart', d as unknown as GraphNode);
     })
     .on('drag', function(event, d) {
       _dragMoved = true;
       d.fx = event.x;
       d.fy = event.y;
+      // 手动更新 DOM
+      d3.select(this).attr('transform', `translate(${event.x},${event.y})`);
     })
     .on('end', function(event, d) {
       if (!event.active && simulation) simulation.alphaTarget(0);
       d.fx = null;
       d.fy = null;
-      // #region agent log
-      console.warn('[DBG-e83a4b] dragEnd', JSON.stringify({id: d.id, x: d.x, y: d.y, moved: _dragMoved}));
-      // #endregion
+      _draggingNodeId = null;
       if (_dragMoved) {
         setTimeout(() => { _isDragging = false; }, 100);
       } else {
@@ -224,9 +223,6 @@ const initializeSimulation = () => {
 
   if (props.interactive && nodesSelection && linksSelection) {
     nodesSelection.on('click', (event, d) => {
-      // #region agent log
-      console.warn('[DBG-e83a4b] CLICK', JSON.stringify({nodeId:d.id,isDragging:_isDragging}));
-      // #endregion
       if (_isDragging) return;
       event.stopPropagation();
       emit('nodeClick', d as unknown as GraphNode);
@@ -369,9 +365,6 @@ const zoomOut = () => {
 onMounted(() => {
   if (containerRef.value) {
     resizeObserver = new ResizeObserver(() => {
-      // #region agent log
-      console.warn('[DBG-e83a4b] RESIZE', JSON.stringify({isDragging:_isDragging}));
-      // #endregion
       initializeSimulation();
     });
     resizeObserver.observe(containerRef.value);
@@ -380,9 +373,6 @@ onMounted(() => {
 });
 
 watch([() => nodes.value.length, () => links.value.length, () => props.layout], () => {
-  // #region agent log
-  console.warn('[DBG-e83a4b] WATCH', JSON.stringify({isDragging:_isDragging,nodesLen:nodes.value.length,linksLen:links.value.length}));
-  // #endregion
   initializeSimulation();
 });
 
@@ -390,9 +380,6 @@ onUnmounted(() => {
   resizeObserver?.disconnect();
   simulation?.stop();
 });
-
-// #region agent log
-// #endregion
 
 defineExpose({
   resetZoom,
@@ -410,10 +397,6 @@ defineExpose({
       :height="containerSize.height || height"
       class="graph-svg"
     ></svg>
-
-    <!-- #region agent log -->
-    <div style="position:absolute;top:4px;left:4px;z-index:99;font-size:10px;padding:2px 6px;background:rgba(0,0,0,0.5);color:#0f0;border-radius:4px;pointer-events:none">v10-std</div>
-    <!-- #endregion -->
     <div v-if="isLoading" class="loading-overlay">
       <div class="loading-spinner"></div>
       <span>加载中...</span>

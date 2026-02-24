@@ -25,16 +25,6 @@ npm run build
 npm run preview -- --host 0.0.0.0 --port 3000
 ```
 
-## Docker 部署
-
-```bash
-docker-compose up -d --build
-```
-
-默认端口：
-- 前端: `3000`
-- 后端: `8000`
-
 ## 健康检查
 - 后端 API 可访问
 - 前端页面可加载

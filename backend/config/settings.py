@@ -264,7 +264,12 @@ REST_FRAMEWORK = {
 
 # JWT Configuration
 # 使用独立的 JWT 签名密钥，防止与 SECRET_KEY 混淆
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", SECRET_KEY)
+# 生产环境必须设置 JWT_SECRET_KEY
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not JWT_SECRET_KEY:
+    if not DEBUG:
+        raise ValueError("生产环境必须设置 JWT_SECRET_KEY 环境变量")
+    JWT_SECRET_KEY = SECRET_KEY  # 开发环境回退
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_LIFETIME = timedelta(minutes=15)  # 访问令牌 15 分钟
 REFRESH_TOKEN_LIFETIME = timedelta(days=1)  # 刷新令牌 1 天
@@ -284,23 +289,24 @@ SIMPLE_JWT = {
 
 # CORS Configuration
 # 开发环境：允许所有来源
-CORS_ALLOW_ALL_ORIGINS = True
-
-# 生产环境：使用指定来源
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:3000",
-#     "http://localhost:5173",
-#     "https://knowledge.yourdomain.com",
-#     "https://www.knowledge.yourdomain.com",
-# ]
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    # 生产环境：从环境变量读取允许的域名
+    CORS_ALLOWED_ORIGINS = os.getenv(
+        "CORS_ALLOWED_ORIGINS",
+        "https://knowledge.yourdomain.com,https://www.knowledge.yourdomain.com"
+    ).split(",")
+    CORS_ALLOW_ALL_ORIGINS = False
 
 CORS_ALLOW_CREDENTIALS = True
 
 # CSRF Configuration (required for production)
-CSRF_TRUSTED_ORIGINS = [
-    "https://knowledge.yourdomain.com",
-    "https://www.knowledge.yourdomain.com",
-]
+# 从环境变量读取，默认为开发环境配置
+CSRF_TRUSTED_ORIGINS = os.getenv(
+    "CSRF_TRUSTED_ORIGINS",
+    "http://localhost:3000,http://localhost:5173,https://knowledge.yourdomain.com,https://www.knowledge.yourdomain.com"
+).split(",")
 
 # Security Headers Configuration
 # These settings help protect against common web attacks

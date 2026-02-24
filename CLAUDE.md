@@ -35,13 +35,6 @@ uv run pytest apps/users/tests.py::TestUser::test_create_user  # Single test
 uv run flake8 apps/                        # Lint code
 ```
 
-### Docker
-```bash
-docker-compose up -d
-# Frontend: http://localhost:3000
-# Backend API: http://localhost:8000/api
-```
-
 ## Architecture
 
 ```

@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db import models
+from utils.permissions import IsOwnerOrReadOnly
 
 from .models import GraphNode, GraphLink
 from .serializers import (
@@ -122,6 +123,7 @@ class GraphLinkViewSet(viewsets.ModelViewSet):
 
     queryset = GraphLink.objects.all()
     serializer_class = GraphLinkSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
 
     def get_queryset(self):
         """根据用户过滤链接"""

@@ -5,8 +5,10 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db import models
+from utils.permissions import IsOwnerOrReadOnly
 
 from .models import Collection
 from .serializers import (
@@ -25,6 +27,7 @@ class CollectionViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = CollectionSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
 
     def get_queryset(self):
         """获取当前用户的收藏列表"""
@@ -124,7 +127,6 @@ class CollectionViewSet(viewsets.ModelViewSet):
                 "code": 200,
                 "message": "获取成功",
                 "data": serializer.data,
-                "count": queryset.count(),
             }
         )
 
@@ -201,7 +203,10 @@ class CollectionViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def recent(self, request):
         """获取最近收藏"""
-        limit = int(request.query_params.get("limit", 5))
+        try:
+            limit = int(request.query_params.get("limit", 5))
+        except (ValueError, TypeError):
+            limit = 5
         collections = self.get_queryset()[:limit]
         serializer = CollectionListSerializer(collections, many=True)
         return Response(

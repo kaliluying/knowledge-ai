@@ -62,17 +62,6 @@ npm install
 npm run dev
 ```
 
-### Docker 部署
-
-```bash
-# 启动所有服务
-docker-compose up -d
-
-# 访问应用
-# 前端: http://localhost:3000
-# 后端 API: http://localhost:8000/api
-```
-
 ## 项目结构
 
 ```
@@ -100,11 +89,6 @@ knowledge-manager/
 │   │   ├── stores/             # Pinia状态管理
 │   │   ├── types/              # TypeScript类型
 │   │   └── utils/              # 工具函数
-│
-├── docker-compose.yml          # Docker部署配置
-├── Dockerfile.backend          # 后端Dockerfile
-├── Dockerfile.frontend         # 前端Dockerfile
-└── nginx.conf                  # Nginx配置
 ```
 
 ## API 文档

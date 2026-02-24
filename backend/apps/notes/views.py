@@ -150,22 +150,26 @@ class NoteViewSet(viewsets.ModelViewSet):
         # 更新关联关系
         note.related_notes.set(valid_note_ids)
 
-        # 双向关联：更新被关联的笔记
-        for related_id in valid_note_ids:
-            related_note = user_notes.filter(id=related_id).first()
-            if related_note:
+        # 双向关联：批量更新被关联的笔记（修复 N+1 查询）
+        if valid_note_ids:
+            related_notes_to_update = user_notes.filter(id__in=valid_note_ids)
+            for related_note in related_notes_to_update:
                 related_note.related_notes.add(note)
-                related_note.save(update_fields=[])
+            # 只在需要时更新，避免空的 update_fields
+            if related_notes_to_update.exists():
+                Note.objects.filter(id__in=valid_note_ids).update(updated_at=timezone.now())
 
         # 清理不再关联的笔记的双向关系
         current_related = set(note.related_notes.values_list("id", flat=True))
         target_related = set(valid_note_ids)
         to_remove = current_related - target_related
-        for removed_id in to_remove:
-            removed_note = user_notes.filter(id=removed_id).first()
-            if removed_note:
+        if to_remove:
+            removed_notes = user_notes.filter(id__in=to_remove)
+            for removed_note in removed_notes:
                 removed_note.related_notes.remove(note)
-                removed_note.save(update_fields=[])
+            # 只在需要时更新
+            if removed_notes.exists():
+                removed_notes.update(updated_at=timezone.now())
 
         # 同步创建 GraphNode 和 GraphLink
         self._sync_graph_data(note, valid_note_ids)
@@ -182,22 +186,36 @@ class NoteViewSet(viewsets.ModelViewSet):
             defaults={"label": note.title[:50]},
         )
 
-        # 收集需要创建的链接目标节点
+        # 收集需要创建的链接目标节点（修复 N+1 查询 - 批量查询）
         target_nodes = {}
 
-        for related_id in related_note_ids:
-            related_note = Note.objects.filter(id=related_id, owner=user).first()
-            if not related_note:
-                continue
+        if related_note_ids:
+            # 批量获取关联笔记
+            related_notes = Note.objects.filter(id__in=related_note_ids, owner=user)
+            related_notes_by_id = {note.id: note for note in related_notes}
 
-            # 确保关联笔记有 GraphNode
-            related_node, _ = GraphNode.objects.get_or_create(
-                owner=user,
-                node_type="note",
-                title=related_note.title,
-                defaults={"label": related_note.title[:50]},
-            )
-            target_nodes[related_id] = related_node
+            # 批量获取或创建 GraphNode
+            existing_nodes = {
+                n.title: n for n in GraphNode.objects.filter(
+                    owner=user,
+                    node_type="note",
+                    title__in=[n.title for n in related_notes_by_id.values()]
+                )
+            }
+
+            for related_id, related_note in related_notes_by_id.items():
+                # 检查是否已存在节点
+                if related_note.title in existing_nodes:
+                    related_node = existing_nodes[related_note.title]
+                else:
+                    # 创建新节点
+                    related_node, _ = GraphNode.objects.get_or_create(
+                        owner=user,
+                        node_type="note",
+                        title=related_note.title,
+                        defaults={"label": related_note.title[:50]},
+                    )
+                target_nodes[related_id] = related_node
 
         # 清理不再相关的 GraphLink
         GraphLink.objects.filter(
@@ -426,7 +444,10 @@ class NoteViewSet(viewsets.ModelViewSet):
         返回 {id, title} 格式的简洁列表
         """
         query = request.query_params.get("q", "")
-        limit = int(request.query_params.get("limit", 20))
+        try:
+            limit = int(request.query_params.get("limit", 20))
+        except (ValueError, TypeError):
+            limit = 20
 
         notes = self.get_queryset().filter(is_archived=False)
 
@@ -453,7 +474,10 @@ class NoteViewSet(viewsets.ModelViewSet):
 
         GET /api/notes/recent/?limit=10
         """
-        limit = int(request.query_params.get("limit", 10))
+        try:
+            limit = int(request.query_params.get("limit", 10))
+        except (ValueError, TypeError):
+            limit = 10
         notes = (
             self.get_queryset()
             .filter(is_archived=False)

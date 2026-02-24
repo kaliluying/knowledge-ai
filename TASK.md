@@ -525,21 +525,11 @@ winget install astral-sh.uv
 
 ## 六、部署任务
 
-### 6.1 Docker 部署
-
-| 任务ID | 任务名称 | 描述 | 文件路径 | 优先级 | 状态 |
-|--------|----------|------|----------|--------|------|
-| T-600 | 后端 Dockerfile | Dockerfile.backend | Dockerfile.backend | P1 | ✅ 已完成 |
-| T-601 | 前端 Dockerfile | Dockerfile.frontend | Dockerfile.frontend | P1 | ✅ 已完成 |
-| T-602 | Docker Compose | docker-compose.yml | docker-compose.yml | P1 | ✅ 已完成 |
-| T-603 | Nginx 配置 | nginx.conf | nginx.conf | P1 | ✅ 已完成 |
-
-### 6.2 CI/CD
+### 6.1 CI/CD
 
 | 任务ID | 任务名称 | 描述 | 文件路径 | 优先级 | 状态 |
 |--------|----------|------|----------|--------|------|
 | T-610 | GitHub Actions | CI 配置文件 | .github/workflows/ci.yml | P2 | ✅ 已完成 |
-| T-611 | 部署脚本 | deploy.sh | scripts/deploy.sh | P2 | ✅ 已完成 |
 
 ---
 

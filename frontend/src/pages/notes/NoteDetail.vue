@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useNotesStore } from '@/stores';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 const router = useRouter();
 const route = useRoute();
@@ -60,13 +61,14 @@ const handleArchive = async () => {
   }
 };
 
-// Parse markdown content to HTML
+// Parse markdown content to HTML and sanitize to prevent XSS
 const parsedContent = computed(() => {
   if (!note.value?.content) return '';
-  return marked(note.value.content, {
+  const html = marked(note.value.content, {
     breaks: true,
     gfm: true,
   });
+  return DOMPurify.sanitize(html as string);
 });
 </script>
 

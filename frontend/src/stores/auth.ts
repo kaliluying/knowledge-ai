@@ -11,7 +11,8 @@ import { useRouter } from 'vue-router';
 export const useAuthStore = defineStore('auth', () => {
   const router = useRouter();
 
-  // 状态
+  // 使用环境变量或默认 URL
+const API_URL = import.meta.env.VITE_API_URL || '';
   const user = ref<User | null>(null);
   const accessToken = ref<string | null>(null);
   const refreshToken = ref<string | null>(null);
@@ -104,7 +105,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // 尝试获取用户信息（使用 fetch 避免 axios 拦截器干扰）
     try {
-      const response = await fetch(`http://localhost:8000/api/auth/profile/`, {
+      const response = await fetch(`${API_URL}/api/auth/profile/`, {
         headers: {
           'Authorization': `Bearer ${storedAccessToken}`,
           'Content-Type': 'application/json',
@@ -131,7 +132,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function refreshTokenDirect(refresh: string) {
     try {
-      const response = await fetch(`http://localhost:8000/api/auth/refresh/`, {
+      const response = await fetch(`${API_URL}/api/auth/refresh/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh }),
@@ -144,7 +145,7 @@ export const useAuthStore = defineStore('auth', () => {
           localStorage.setItem('accessToken', json.data.access);
 
           // 用新 token 获取用户信息
-          const profileResponse = await fetch(`http://localhost:8000/api/auth/profile/`, {
+          const profileResponse = await fetch(`${API_URL}/api/auth/profile/`, {
             headers: {
               'Authorization': `Bearer ${json.data.access}`,
               'Content-Type': 'application/json',

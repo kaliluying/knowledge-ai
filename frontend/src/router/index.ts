@@ -106,8 +106,8 @@ router.beforeEach(async (to, _from, next) => {
     await authStore.initAuth();
   }
 
-  // 检查是否需要认证
-  const hasValidAuth = authStore.user !== null && authStore.isAuthenticated;
+  // 检查是否需要认证（有 token 或有用户信息即可）
+  const hasValidAuth = authStore.user !== null || authStore.isAuthenticated;
 
   if (to.meta.requiresAuth && !hasValidAuth) {
     next({ name: 'Login', query: { redirect: to.fullPath } });

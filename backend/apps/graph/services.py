@@ -94,9 +94,9 @@ def get_hybrid_graph_data(user: object, mode: str = "hybrid") -> dict[str, list[
     links = []
     id_mapping = {}  # 映射 (type, original_id) -> node_id (字符串格式)
 
-    # 1. 同步模式或混合模式：获取笔记节点
+    # 1. 同步模式或混合模式：获取笔记节点（优化：使用 select_related 和 prefetch_related 避免 N+1）
     if mode in ("hybrid", "sync_only"):
-        notes = Note.objects.filter(owner=user, is_archived=False)
+        notes = Note.objects.filter(owner=user, is_archived=False).select_related("category").prefetch_related("tags")
         for note in notes:
             # 使用字符串格式的 ID：note-{original_id}
             node_id = f"note-{note.id}"

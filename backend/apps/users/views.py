@@ -10,9 +10,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.db.models import Count, Q
-from django.http import JsonResponse
-import json
-
 from .serializers import (
     UserCreateSerializer,
     UserSerializer,
@@ -330,7 +327,15 @@ class UserDetailView(APIView):
     def get(self, request, user_id):
         """
         获取指定用户信息
+        仅允许用户查看自己的信息，或管理员查看任意用户信息
         """
+        # 权限检查：只允许查看自己或管理员查看所有用户
+        if request.user.id != user_id and not request.user.is_staff:
+            return Response(
+                {"code": 403, "message": "无权访问其他用户信息"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         try:
             user = User.objects.get(id=user_id)
             serializer = UserSerializer(user)
@@ -421,7 +426,6 @@ class SessionsView(APIView):
         """获取用户的登录设备列表"""
         # 返回当前 token 对应的设备信息
         # 在实际应用中，这里应该查询数据库中的 Session 表
-        import uuid
 
         current_token = request.auth
         sessions = []

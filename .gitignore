@@ -47,6 +47,7 @@ coverage.xml
 
 # Misc
 *.log
+logs/
 *.tmp
 .temp/
 

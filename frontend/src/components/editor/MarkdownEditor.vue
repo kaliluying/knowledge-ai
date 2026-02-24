@@ -7,6 +7,7 @@ import { markdown } from '@codemirror/lang-markdown';
 import { keymap } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import { notesApi } from '@/api';
 
 interface NoteSuggestion {
@@ -210,10 +211,11 @@ const parseMarkdown = (markdownText: string): string => {
     }
   );
 
-  return marked(processedText, {
+  const html = marked(processedText, {
     breaks: true,
     gfm: true,
   }) as string;
+  return DOMPurify.sanitize(html);
 };
 
 // Update preview content

@@ -7,6 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+from utils.permissions import IsOwnerOrReadOnly
 
 from .models import Attachment
 from .serializers import (
@@ -23,7 +24,7 @@ class AttachmentViewSet(viewsets.ModelViewSet):
     提供附件的 CRUD 操作
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
     lookup_field = "id"
 
     def get_queryset(self):
@@ -83,7 +84,6 @@ class AttachmentViewSet(viewsets.ModelViewSet):
                 "code": 200,
                 "message": "获取成功",
                 "data": serializer.data,
-                "count": queryset.count(),
             }
         )
 
@@ -119,7 +119,10 @@ class AttachmentViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def recent(self, request):
         """获取最近附件"""
-        limit = int(request.query_params.get("limit", 10))
+        try:
+            limit = int(request.query_params.get("limit", 10))
+        except (ValueError, TypeError):
+            limit = 10
         attachments = self.get_queryset()[:limit]
         serializer = AttachmentListSerializer(attachments, many=True)
         return Response(
