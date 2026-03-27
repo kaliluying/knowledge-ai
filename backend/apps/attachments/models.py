@@ -5,7 +5,6 @@
 import os
 import uuid
 from django.db import models
-from django.utils.text import slugify
 
 
 def attachment_file_path(instance, filename):
@@ -19,7 +18,6 @@ def attachment_file_path(instance, filename):
 
     # 生成唯一文件名
     unique_id = uuid.uuid4().hex[:12]
-    base_name = slugify(filename[:50]) if filename else "file"
 
     # 构建路径
     user_id = instance.owner.id if instance.owner else "unknown"

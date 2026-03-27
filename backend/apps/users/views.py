@@ -174,7 +174,7 @@ class LogoutView(APIView):
                 {"code": 200, "message": "登出成功"},
                 status=status.HTTP_200_OK,
             )
-        except Exception as e:
+        except Exception:
             return Response(
                 {"code": 400, "message": "登出失败"},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -569,7 +569,6 @@ class ExportView(APIView):
 
     def get(self, request):
         """导出用户的所有数据"""
-        from .models import Profile
         from apps.notes.models import Note
         from apps.categories.models import Category
         from apps.tags.models import Tag
@@ -681,7 +680,6 @@ class DeleteAccountView(APIView):
             )
 
         user = request.user
-        user_id = user.id
 
         # 退出登录（使 token 失效）
         try:

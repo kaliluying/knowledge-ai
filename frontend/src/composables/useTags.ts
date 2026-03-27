@@ -4,23 +4,23 @@
 
 import { computed } from 'vue';
 import { useTagsStore } from '@/stores/tags';
-import type { Tag, CreateTagParams, TagFilters } from '@/types';
+import type { CreateTagParams } from '@/types';
 
 export function useTags() {
   const tagsStore = useTagsStore();
 
   // 状态
   const tags = computed(() => tagsStore.tags);
-  const popularTags = computed(() => tagsStore.popularTags);
+  const hotTags = computed(() => tagsStore.hotTags);
   const isLoading = computed(() => tagsStore.isLoading);
 
   // 方法
-  async function fetchTags(params?: TagFilters) {
-    return tagsStore.fetchTags(params);
+  async function fetchTags() {
+    return tagsStore.fetchTags();
   }
 
-  async function fetchPopularTags(limit = 10) {
-    return tagsStore.fetchPopularTags(limit);
+  async function fetchHotTags(limit = 10) {
+    return tagsStore.fetchHotTags(limit);
   }
 
   async function createTag(data: CreateTagParams) {
@@ -37,10 +37,10 @@ export function useTags() {
 
   return {
     tags,
-    popularTags,
+    hotTags,
     isLoading,
     fetchTags,
-    fetchPopularTags,
+    fetchHotTags,
     createTag,
     updateTag,
     deleteTag,

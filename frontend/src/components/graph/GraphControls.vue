@@ -117,7 +117,7 @@ const handleLayoutChange = (layout: string) => {
 
     <!-- 布局选择 -->
     <div class="control-group">
-      <select v-model="selectedLayout" class="layout-select" @change="handleLayoutChange($event.target.value)">
+      <select v-model="selectedLayout" class="layout-select" @change="handleLayoutChange(selectedLayout)">
         <option v-for="layout in layoutOptions" :key="layout" :value="layout">
           {{ layout === 'force' ? '力导向' : layout === 'circular' ? '环形' : '网格' }}
         </option>

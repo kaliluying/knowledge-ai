@@ -2,7 +2,7 @@
  * 模态框控制组合式函数
  */
 
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 
 interface ModalState {
   isOpen: boolean;

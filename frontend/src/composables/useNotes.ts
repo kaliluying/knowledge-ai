@@ -5,7 +5,7 @@
 import { computed } from 'vue';
 import { useNotesStore } from '@/stores/notes';
 import { useRouter } from 'vue-router';
-import type { Note, CreateNoteParams, NoteFilters } from '@/types';
+import type { CreateNoteParams, NoteFilters } from '@/types';
 
 export function useNotes() {
   const notesStore = useNotesStore();
@@ -30,7 +30,7 @@ export function useNotes() {
   async function createNote(data: CreateNoteParams) {
     const result = await notesStore.createNote(data);
     if (result.success) {
-      router.push(`/notes/${result.data.id}`);
+      router.push(`/notes/${result.data?.id}`);
     }
     return result;
   }

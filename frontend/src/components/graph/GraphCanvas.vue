@@ -287,8 +287,6 @@ const initializeSimulation = () => {
       updatePositions();
     });
   } else {
-    simulation?.stop();
-    simulation = null;
     applyStaticLayout(props.layout);
     updatePositions();
   }
@@ -325,8 +323,8 @@ const fitToView = () => {
   const bounds = svg.node()?.getBBox();
   
   if (bounds) {
-    const fullWidth = containerSize.value.width || props.width;
-    const fullHeight = containerSize.value.height || props.height;
+    const fullWidth = containerSize.value.width || props.width || 800;
+    const fullHeight = containerSize.value.height || props.height || 600;
     const width = bounds.width;
     const height = bounds.height;
     const midX = bounds.x + width / 2;
@@ -339,7 +337,7 @@ const fitToView = () => {
 
     svg.transition().duration(750).call(
       zoomBehavior!.transform,
-      d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
+      d3.zoomIdentity.translate(translate[0] || 0, translate[1] || 0).scale(scale)
     );
   }
 };

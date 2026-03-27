@@ -113,9 +113,8 @@ export const useGraphStore = defineStore('graph', () => {
   async function createLink(sourceId: number, targetId: number, type = 'related') {
     try {
       const response = await graphApi.createLink(sourceId, targetId, type);
-      // response.data 是 {code, message, data: GraphLink}
-      if (response?.data && !Array.isArray(response.data) && response.data.data) {
-        const newLink = response.data.data;
+      if (response?.data && !Array.isArray(response.data)) {
+        const newLink = response.data as unknown as GraphLink; // Type coerce or just response.data
         graphData.value.links.push(newLink);
         return { success: true, data: newLink };
       }

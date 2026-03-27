@@ -57,10 +57,9 @@ export const useCollectionsStore = defineStore('collections', () => {
     isLoading.value = true;
     try {
       const response = await collectionsApi.getDetail(id);
-      // response.data 是 {code, message, data: Collection}
-      if (response?.data && !Array.isArray(response.data) && response.data.data) {
-        currentCollection.value = response.data.data;
-        return response.data.data;
+      if (response?.data && !Array.isArray(response.data)) {
+        currentCollection.value = response.data;
+        return response.data;
       }
       return null;
     } catch {
@@ -74,10 +73,10 @@ export const useCollectionsStore = defineStore('collections', () => {
     isLoading.value = true;
     try {
       const response = await collectionsApi.create(data);
-      if (response?.data && !Array.isArray(response.data) && response.data.data) {
-        collections.value.unshift(response.data.data);
+      if (response?.data && !Array.isArray(response.data)) {
+        collections.value.unshift(response.data);
       }
-      return { success: !!response?.data?.data, data: response?.data?.data || null, message: '' };
+      return { success: !!response?.data, data: response?.data || null, message: '' };
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { message?: string } } };
       return { success: false, data: null as unknown as CollectionListItem, message: axiosError.response?.data?.message || '添加收藏失败' };
@@ -103,9 +102,8 @@ export const useCollectionsStore = defineStore('collections', () => {
   async function refreshCollection(id: number) {
     try {
       const response = await collectionsApi.refresh(id);
-      // response.data 是 {code, message, data: Collection}
-      if (response?.data && !Array.isArray(response.data) && response.data.data) {
-        const refreshedData = response.data.data;
+      if (response?.data && !Array.isArray(response.data)) {
+        const refreshedData = response.data;
         // 更新列表中的收藏
         const index = collections.value.findIndex(c => c.id === id);
         if (index !== -1) {

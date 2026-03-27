@@ -63,10 +63,9 @@ export const useTagsStore = defineStore('tags', () => {
     isLoading.value = true;
     try {
       const response = await tagsApi.getDetail(id);
-      // response.data 是 {code, message, data: Tag}
-      if (response?.data && !Array.isArray(response.data) && response.data.data) {
-        currentTag.value = response.data.data;
-        return response.data.data;
+      if (response?.data && !Array.isArray(response.data)) {
+        currentTag.value = response.data;
+        return response.data;
       }
       return null;
     } catch {
@@ -80,10 +79,10 @@ export const useTagsStore = defineStore('tags', () => {
     isLoading.value = true;
     try {
       const response = await tagsApi.create(data);
-      if (response?.data && !Array.isArray(response.data) && response.data.data) {
-        tags.value.push(response.data.data);
+      if (response?.data && !Array.isArray(response.data)) {
+        tags.value.push(response.data);
       }
-      return { success: !!response?.data?.data, data: response?.data?.data };
+      return { success: !!response?.data, data: response?.data };
     } catch {
       return { success: false };
     } finally {
@@ -94,7 +93,7 @@ export const useTagsStore = defineStore('tags', () => {
   async function bulkCreateTags(names: string[]) {
     isLoading.value = true;
     try {
-      const response = await tagsApi.bulkCreate(names);
+      await tagsApi.bulkCreate(names);
       // 刷新标签列表
       await fetchTags();
       return { success: true };
@@ -110,18 +109,18 @@ export const useTagsStore = defineStore('tags', () => {
     try {
       const response = await tagsApi.update(id, data);
 
-      if (response?.data && !Array.isArray(response.data) && response.data.data) {
+      if (response?.data && !Array.isArray(response.data)) {
         const index = tags.value.findIndex(t => t.id === id);
         if (index !== -1) {
-          tags.value[index] = response.data.data;
+          tags.value[index] = response.data;
         }
 
         if (currentTag.value?.id === id) {
-          currentTag.value = response.data.data;
+          currentTag.value = response.data;
         }
       }
 
-      return { success: !!response?.data?.data, data: response?.data?.data };
+      return { success: !!response?.data, data: response?.data };
     } catch {
       return { success: false };
     } finally {

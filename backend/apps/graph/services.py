@@ -230,7 +230,7 @@ def get_hybrid_graph_data(user: object, mode: str = "hybrid") -> dict[str, list[
                 if linked_node_id:
                     # 避免重复链接
                     link_id = f"note-{note.id}-note-{linked_note_id}"
-                    if not any(getattr(l, "id", None) == link_id for l in links):
+                    if not any(getattr(lnk, "id", None) == link_id for lnk in links):
                         link = type("Link", (), {
                             "id": link_id,
                             "source_id": note_node_id,
@@ -251,7 +251,7 @@ def get_hybrid_graph_data(user: object, mode: str = "hybrid") -> dict[str, list[
                 if related_node_id:
                     # 避免重复链接
                     link_id = f"note-{note.id}-related-{related.id}"
-                    if not any(getattr(l, "id", None) == link_id for l in links):
+                    if not any(getattr(lnk, "id", None) == link_id for lnk in links):
                         link = type("Link", (), {
                             "id": link_id,
                             "source_id": note_node_id,

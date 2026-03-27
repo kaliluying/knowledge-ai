@@ -37,7 +37,7 @@ export function useCategories() {
   }
 
   function setCurrentCategory(category: Category | null) {
-    categoriesStore.setCurrentCategory(category);
+    categoriesStore.currentCategory = category;
   }
 
   return {

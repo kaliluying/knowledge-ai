@@ -64,10 +64,9 @@ export const useAttachmentsStore = defineStore('attachments', () => {
     isLoading.value = true;
     try {
       const response = await attachmentsApi.getDetail(id);
-      // response.data 是 {code, message, data: Attachment}
-      if (response?.data?.data) {
-        currentAttachment.value = response.data.data;
-        return response.data.data;
+      if (response?.data) {
+        currentAttachment.value = response.data as unknown as Attachment;
+        return response.data;
       }
       return null;
     } catch {
@@ -81,8 +80,7 @@ export const useAttachmentsStore = defineStore('attachments', () => {
     isLoading.value = true;
     try {
       const response = await attachmentsApi.upload(data);
-      // response.data 是 {code, message, data: Attachment}
-      const newAttachment = response?.data?.data;
+      const newAttachment = response?.data as unknown as AttachmentListItem;
       if (newAttachment) {
         attachments.value.unshift(newAttachment);
       }
@@ -122,7 +120,7 @@ export const useAttachmentsStore = defineStore('attachments', () => {
   async function fetchRecentAttachments(limit = 10) {
     try {
       const response = await attachmentsApi.getRecent(limit);
-      return response?.data?.data || [];
+      return (response?.data as unknown as AttachmentListItem[]) || [];
     } catch {
       return [];
     }

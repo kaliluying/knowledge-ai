@@ -25,7 +25,7 @@ export function useAuth() {
   }
 
   async function register(data: { username: string; email: string; password: string; password2: string }) {
-    const result = await authStore.register(data);
+    const result = await authStore.register({ ...data, password_confirm: data.password2 });
     if (result.success) {
       router.push('/login');
     }

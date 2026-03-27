@@ -135,7 +135,7 @@ const sizeClasses = {
         <div class="dropdown-list">
           <div
             v-for="option in filteredOptions"
-            :key="option.value"
+            :key="option.value ?? 'null'"
             class="dropdown-item"
             :class="{ disabled: option.disabled, selected: option.value === modelValue }"
             @click="selectOption(option)"

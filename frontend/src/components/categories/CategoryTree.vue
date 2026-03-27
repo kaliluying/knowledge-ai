@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, defineComponent, h } from 'vue';
+import type { PropType } from 'vue';
 import type { CategoryTreeItem } from '@/types';
 import { useCategoriesStore } from '@/stores/categories';
 
@@ -48,48 +49,7 @@ const selectCategory = (category: CategoryTreeItem) => {
   emit('select', category);
 };
 
-const getIndent = (level: number) => {
-  return level * 20;
-};
 
-const getIcon = (category: CategoryTreeItem) => {
-  return category.icon || '📁';
-};
-</script>
-
-<template>
-  <div class="category-tree">
-    <div v-if="loading" class="tree-loading">
-      <div class="loading-spinner"></div>
-      <span>加载中...</span>
-    </div>
-
-    <div v-else-if="categoryTree.length === 0" class="tree-empty">
-      暂无分类
-    </div>
-
-    <ul v-else class="tree-list">
-      <TreeNode
-        v-for="category in categoryTree"
-        :key="category.id"
-        :category="category"
-        :selected-id="selectedId"
-        :expanded-ids="expandedIds"
-        :level="0"
-        :expandable="expandable"
-        :show-icon="showIcon"
-        :show-count="showCount"
-        @select="selectCategory"
-        @toggle="toggleExpand"
-      />
-    </ul>
-  </div>
-</template>
-
-<script lang="ts">
-import { defineComponent, h, ref, computed, onMounted, PropType } from 'vue';
-import type { CategoryTreeItem } from '@/types';
-import { useCategoriesStore } from '@/stores/categories';
 
 const TreeNode = defineComponent({
   name: 'TreeNode',
@@ -140,7 +100,7 @@ const TreeNode = defineComponent({
       return level * 20;
     };
 
-    return () => {
+    return (): any => {
       const indent = getIndent(props.level);
 
       return h('li', { class: 'tree-node' }, [
@@ -203,9 +163,38 @@ const TreeNode = defineComponent({
     };
   },
 });
-
-export { TreeNode };
 </script>
+
+<template>
+  <div class="category-tree">
+    <div v-if="loading" class="tree-loading">
+      <div class="loading-spinner"></div>
+      <span>加载中...</span>
+    </div>
+
+    <div v-else-if="categoryTree.length === 0" class="tree-empty">
+      暂无分类
+    </div>
+
+    <ul v-else class="tree-list">
+      <TreeNode
+        v-for="category in categoryTree"
+        :key="category.id"
+        :category="category"
+        :selected-id="selectedId"
+        :expanded-ids="expandedIds"
+        :level="0"
+        :expandable="expandable"
+        :show-icon="showIcon"
+        :show-count="showCount"
+        @select="selectCategory"
+        @toggle="toggleExpand"
+      />
+    </ul>
+  </div>
+</template>
+
+
 
 <style scoped>
 .category-tree {

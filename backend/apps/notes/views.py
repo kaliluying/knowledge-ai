@@ -423,7 +423,15 @@ class NoteViewSet(viewsets.ModelViewSet):
         page = self.paginate_queryset(notes)
         if page is not None:
             serializer = NoteListSerializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
+            response = self.get_paginated_response(serializer.data)
+            return Response(
+                {
+                    "code": 200,
+                    "message": "搜索成功",
+                    "data": response.data,
+                },
+                status=status.HTTP_200_OK,
+            )
 
         serializer = NoteListSerializer(notes, many=True)
         return Response(
@@ -506,7 +514,15 @@ class NoteViewSet(viewsets.ModelViewSet):
         page = self.paginate_queryset(notes)
         if page is not None:
             serializer = NoteListSerializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
+            response = self.get_paginated_response(serializer.data)
+            return Response(
+                {
+                    "code": 200,
+                    "message": "获取成功",
+                    "data": response.data,
+                },
+                status=status.HTTP_200_OK,
+            )
 
         serializer = NoteListSerializer(notes, many=True)
         return Response(

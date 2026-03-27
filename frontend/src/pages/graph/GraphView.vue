@@ -97,7 +97,7 @@ const handleNodeClick = async (node: GraphNode) => {
   relatedError.value = '';
   subgraphMode.value = true;
   try {
-    const data = await graphStore.fetchRelatedNodes(node.id);
+    const data = await graphStore.fetchRelatedNodes(Number(node.id));
     if (!data || data.nodes.length === 0) {
       relatedError.value = '该节点暂无关联数据';
     }

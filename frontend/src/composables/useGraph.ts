@@ -4,7 +4,7 @@
 
 import { computed } from 'vue';
 import { useGraphStore } from '@/stores/graph';
-import type { GraphNode, GraphLink } from '@/types';
+import type { GraphNode } from '@/types';
 
 export function useGraph() {
   const graphStore = useGraphStore();

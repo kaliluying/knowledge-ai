@@ -54,7 +54,7 @@ const filteredCategories = computed(() => {
   );
 });
 
-watch(modelValue, async (newId) => {
+watch(() => props.modelValue, async (newId) => {
   if (newId) {
     await fetchCategoryDetail(newId);
   } else {
@@ -96,10 +96,6 @@ function clearSelection(e: Event) {
   selectedCategory.value = null;
 }
 
-function getCategoryPath(category: Category): string {
-  // 简化版本，只显示名称
-  return category.name;
-}
 
 onMounted(async () => {
   await categoriesStore.fetchCategoryTree();

@@ -3,7 +3,6 @@
  */
 
 import axios from 'axios';
-import { useAuthStore } from '@/stores/auth';
 
 // Centralized default API URL configuration
 const DEFAULT_API_URL = 'http://localhost:8000/api';

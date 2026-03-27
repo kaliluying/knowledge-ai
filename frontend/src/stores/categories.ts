@@ -19,16 +19,7 @@ export const useCategoriesStore = defineStore('categories', () => {
     isLoading.value = true;
     try {
       const response = await categoriesApi.getList();
-      if (Array.isArray(response?.results)) {
-        categories.value = response.results;
-        return response.results;
-      }
-      // response.data 是 {code, message, data: [...]}
-      if (response?.data && Array.isArray(response.data.data)) {
-        categories.value = response.data.data;
-        return response.data.data;
-      }
-      if (Array.isArray(response?.data)) {
+      if (response?.data && Array.isArray(response.data)) {
         categories.value = response.data;
         return response.data;
       }
@@ -44,14 +35,9 @@ export const useCategoriesStore = defineStore('categories', () => {
     isLoading.value = true;
     try {
       const response = await categoriesApi.getTree();
-      if (Array.isArray(response?.data)) {
+      if (response?.data && Array.isArray(response.data)) {
         categoryTree.value = response.data;
         return response.data;
-      }
-      // response.data 是 {code, message, data: [...]}
-      if (response?.data && Array.isArray(response.data.data)) {
-        categoryTree.value = response.data.data;
-        return response.data.data;
       }
       return [];
     } catch (error) {
@@ -66,10 +52,9 @@ export const useCategoriesStore = defineStore('categories', () => {
     isLoading.value = true;
     try {
       const response = await categoriesApi.getDetail(id);
-      // response.data 是 {code, message, data: Category}
       if (response?.data && !Array.isArray(response.data)) {
-        currentCategory.value = response.data.data;
-        return response.data.data;
+        currentCategory.value = response.data;
+        return response.data;
       }
       return null;
     } catch {
@@ -83,12 +68,11 @@ export const useCategoriesStore = defineStore('categories', () => {
     isLoading.value = true;
     try {
       const response = await categoriesApi.create(data);
-      // response.data 是 {code, message, data: Category}
-      if (response?.data && !Array.isArray(response.data) && response.data.data) {
-        categories.value.push(response.data.data);
+      if (response?.data) {
+        categories.value.push(response.data);
         // 刷新树
         await fetchCategoryTree();
-        return { success: true, data: response.data.data };
+        return { success: true, data: response.data };
       }
       return { success: false };
     } finally {
@@ -100,22 +84,21 @@ export const useCategoriesStore = defineStore('categories', () => {
     isLoading.value = true;
     try {
       const response = await categoriesApi.update(id, data);
-      // response.data 是 {code, message, data: Category}
-      if (response?.data && !Array.isArray(response.data) && response.data.data) {
+      if (response?.data) {
         // 更新列表
         const index = categories.value.findIndex(c => c.id === id);
         if (index !== -1) {
-          categories.value[index] = response.data.data;
+          categories.value[index] = response.data;
         }
 
         // 更新当前分类
         if (currentCategory.value?.id === id) {
-          currentCategory.value = response.data.data;
+          currentCategory.value = response.data;
         }
 
         // 刷新树
         await fetchCategoryTree();
-        return { success: true, data: response.data.data };
+        return { success: true, data: response.data };
       }
       return { success: false };
     } catch (error) {

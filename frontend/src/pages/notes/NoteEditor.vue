@@ -54,7 +54,7 @@ onMounted(async () => {
       const note = await notesStore.fetchNoteDetail(noteId.value);
       if (note) {
         title.value = note.title;
-        content.value = note.content || [];
+        content.value = note.content || '';
         selectedCategoryId.value = note.category_id;
         selectedTagIds.value = note.tag_ids || [];
         isPinned.value = note.is_pinned;

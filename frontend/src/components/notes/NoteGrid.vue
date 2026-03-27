@@ -73,6 +73,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { formatDistanceToNow } from 'date-fns'
+import { zhCN } from 'date-fns/locale'
 import { useNotesStore } from '@/stores/notes'
 import Empty from '@/components/common/Empty.vue'
 import type { Note } from '@/types/note'
@@ -115,7 +116,7 @@ function getPreview(note: Note): string {
 }
 
 function formatDate(date: string): string {
-  return formatDistanceToNow(new Date(date), { addSuffix: true, locale: 'zh_CN' })
+  return formatDistanceToNow(new Date(date), { addSuffix: true, locale: zhCN })
 }
 </script>
 

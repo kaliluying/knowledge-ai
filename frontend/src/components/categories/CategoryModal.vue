@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import type { Category, CreateCategoryParams, UpdateCategoryParams } from '@/types';
 import { useCategoriesStore } from '@/stores/categories';
-import { useModal } from '@/composables/useModal';
 
 interface Props {
   modelValue: boolean;
@@ -25,14 +24,13 @@ const emit = defineEmits<{
 }>();
 
 const categoriesStore = useCategoriesStore();
-const { open, close } = useModal();
 
 const form = ref<CreateCategoryParams>({
   name: '',
   description: '',
   color: '#8b5cf6',
   icon: '',
-  parent_id: null,
+  parent_id: undefined,
   sort_order: 0,
 });
 
@@ -61,7 +59,7 @@ watch(() => props.category, (val) => {
       description: val.description || '',
       color: val.color,
       icon: val.icon || '',
-      parent_id: val.parent,
+      parent_id: val.parent || undefined,
       sort_order: val.sort_order,
     };
   }
@@ -74,7 +72,7 @@ function openCategoryModal() {
       description: '',
       color: '#8b5cf6',
       icon: '',
-      parent_id: props.parentId,
+      parent_id: props.parentId || undefined,
       sort_order: 0,
     };
   }
@@ -120,14 +118,14 @@ async function handleSubmit() {
         description: form.value.description,
         color: form.value.color,
         icon: form.value.icon || undefined,
-        parent_id: form.value.parent_id || undefined,
+        parent: form.value.parent_id || undefined,
       };
       result = await categoriesStore.updateCategory(props.category.id, updateData);
     } else {
       result = await categoriesStore.createCategory(form.value);
     }
     
-    if (result.success) {
+    if (result.success && result.data) {
       emit('success', result.data);
       closeModal();
     }
