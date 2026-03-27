@@ -36,7 +36,7 @@ export const useNotesStore = defineStore('notes', () => {
       });
 
       // 响应就是 { count, next, previous, results }
-      const data = response as unknown as { count: number; results: NoteListItem[] };
+      const data = response?.data;
       const results = Array.isArray(data?.results) ? data.results : [];
 
       if (params?.page === 1 || !params?.page) {
@@ -85,7 +85,13 @@ export const useNotesStore = defineStore('notes', () => {
       // response 已经是 {code, message, data: Note} 格式
       const newNote = response?.data;
       if (newNote && newNote.id) {
-        notes.value.unshift(newNote as unknown as NoteListItem);
+        const noteItem: NoteListItem = {
+          ...newNote,
+          category_name: newNote.category?.name || null,
+          tag_names: newNote.tags?.map(t => t.name) || [],
+          // Keep content/plain_text as they are loosely typed
+        } as unknown as NoteListItem; // Safely fall back to the type with mapped fields.
+        notes.value.unshift(noteItem);
       }
       return { success: !!newNote, data: newNote };
     } catch (error) {
@@ -105,7 +111,12 @@ export const useNotesStore = defineStore('notes', () => {
       // 更新列表中的笔记
       const index = notes.value.findIndex(n => n && n.id === id);
       if (index !== -1 && updatedNote) {
-        notes.value[index] = updatedNote as unknown as NoteListItem;
+        const noteItem: NoteListItem = {
+          ...updatedNote,
+          category_name: updatedNote.category?.name || null,
+          tag_names: updatedNote.tags?.map(t => t.name) || [],
+        } as unknown as NoteListItem;
+        notes.value[index] = noteItem;
       }
 
       // 更新当前笔记
@@ -209,7 +220,6 @@ export const useNotesStore = defineStore('notes', () => {
   async function fetchRecentNotes(limit = 10): Promise<NoteListItem[]> {
     try {
       const response = await notesApi.getRecent(limit);
-      // response.data 就是数组
       if (response?.data && Array.isArray(response.data)) {
         return response.data;
       }

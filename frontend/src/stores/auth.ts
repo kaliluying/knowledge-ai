@@ -6,10 +6,9 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { authApi } from '@/api';
 import type { User, LoginParams, RegisterParams } from '@/types';
-import { useRouter } from 'vue-router';
+import router from '@/router';
 
 export const useAuthStore = defineStore('auth', () => {
-  const router = useRouter();
 
   // 使用环境变量或默认 URL
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -182,7 +181,7 @@ const API_URL = import.meta.env.VITE_API_URL || '';
     clearAuth();
     isInitialized.value = false;
     if (navigate) {
-      router?.push?.('/login');
+      router.push('/login');
     }
   }
 
